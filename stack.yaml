@@ -1,0 +1,11 @@
+resolver: lts-6.4
+
+packages:
+- '.'
+- ../quickcheck-arbitrary-adt
+
+extra-deps: []
+
+flags: {}
+
+extra-package-dbs: []
