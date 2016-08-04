@@ -1,16 +1,24 @@
 module Test.Aeson.GenericSpecs (
-  --roundtripSpecs,
-  --goldenSpecs,
+  -- for Arbitrary testing
+  goldenSpecs
+, roundtripSpecs
 
-  --shouldBeIdentity,
+  -- for ToADTArbitrary testing
+, goldenADTSpecs
+, roundtripADTSpecs
+
+, shouldBeIdentity
 
   -- * re-exports
-  module Test.Aeson.Internal.GoldenSpecs
-, module Test.Aeson.Internal.RoundtripSpecs
 , Proxy(..)
 ) where
 
 import           Data.Proxy
 
-import           Test.Aeson.Internal.GoldenSpecs
-import           Test.Aeson.Internal.RoundtripSpecs
+import           Test.Aeson.Internal.ADT.GoldenSpecs    (goldenADTSpecs)
+import           Test.Aeson.Internal.ADT.RoundtripSpecs (roundtripADTSpecs)
+
+import           Test.Aeson.Internal.GoldenSpecs        (goldenSpecs)
+import           Test.Aeson.Internal.RoundtripSpecs     (roundtripSpecs)
+
+import           Test.Aeson.Internal.Utils

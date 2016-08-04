@@ -5,18 +5,23 @@ description:         Please see README.md
 homepage:            https://github.com/plow-technologies/hspec-golden-aeson#readme
 license:             BSD3
 license-file:        LICENSE
-author:              Author name here
-maintainer:          example@example.com
-copyright:           2016 Author name here
-category:            Web
+author:              James M.C. Haver II
+maintainer:          mchaver@gmail.com
+copyright:           2016 Plow Technologies
+category:            Testing
 build-type:          Simple
 cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
   exposed-modules:     Test.Aeson.GenericSpecs
+                       Test.Aeson.Internal.ADT.GoldenSpecs
+                       Test.Aeson.Internal.ADT.RoundtripSpecs
                        Test.Aeson.Internal.GoldenSpecs
                        Test.Aeson.Internal.RoundtripSpecs
+                       Test.Aeson.Internal.RandomSamples
+                       Test.Aeson.Internal.Utils
+
   build-depends:       base >= 4.7 && < 5
                      , aeson
                      , aeson-pretty
