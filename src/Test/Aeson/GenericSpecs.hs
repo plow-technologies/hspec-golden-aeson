@@ -6,6 +6,7 @@ module Test.Aeson.GenericSpecs (
 
   -- * re-exports
   module Test.Aeson.Internal.GoldenSpecs
+, module Test.Aeson.Internal.RoundtripSpecs
 , Proxy(..)
 ) where
 
