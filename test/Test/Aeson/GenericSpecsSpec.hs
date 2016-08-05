@@ -37,7 +37,10 @@ spec = do
   describe "Test.Aeson.GenericSpecs: goldenADTSpecs" $ do
     it "create golden test files" $ do
       -- clean up previously existing golden folder
-      removeDirectoryRecursive "golden"
+      bg <- doesDirectoryExist "golden"
+      if bg
+        then removeDirectoryRecursive "golden"
+        else return ()
 
       -- files for Person and SumType do not exist
       -- create them by running goldenADTSpecs
