@@ -124,4 +124,4 @@ mkRandomADTSamplesForConstructor Proxy conName seed = do
       arbs         = _capArbitrary <$> filteredCAPs
   return $ RandomSamples seed arbs
   where
-    gen = setSeed seed $ replicateM 200 (toADTArbitrary (Proxy :: Proxy a))
+    gen = setSeed seed $ replicateM 5 (toADTArbitrary (Proxy :: Proxy a))

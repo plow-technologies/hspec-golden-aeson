@@ -104,4 +104,4 @@ mkRandomSamples :: forall a . Arbitrary a =>
 mkRandomSamples Proxy seed = RandomSamples seed <$> generate gen
   where
     gen :: Gen [a]
-    gen = setSeed seed $ replicateM 200 (arbitrary :: Gen a)
+    gen = setSeed seed $ replicateM 5 (arbitrary :: Gen a)
