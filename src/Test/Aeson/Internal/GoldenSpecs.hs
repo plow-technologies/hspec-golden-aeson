@@ -36,12 +36,12 @@ import           Test.QuickCheck
 -- You can consider putting the golden files under revision control. That way
 -- it'll be obvious when JSON encodings change.
 goldenSpecs :: (Eq a, Show a, Typeable a, Arbitrary a, ToJSON a, FromJSON a) =>
-  Proxy a -> Spec
-goldenSpecs proxy = goldenSpecsWithNote proxy Nothing
+  Int -> Proxy a -> Spec
+goldenSpecs sampleSize proxy = goldenSpecsWithNote sampleSize proxy Nothing
 
 goldenSpecsWithNote :: (Eq a, Show a, Typeable a, Arbitrary a, ToJSON a, FromJSON a) =>
-  Proxy a -> Maybe String -> Spec
-goldenSpecsWithNote proxy mNote = do
+  Int -> Proxy a -> Maybe String -> Spec
+goldenSpecsWithNote sampleSize proxy mNote = do
   let goldenFile = mkGoldenFile proxy
       note = maybe "" (" " ++) mNote
   describe ("JSON encoding of " ++ addBrackets (show (typeRep proxy)) ++ note) $
@@ -49,7 +49,7 @@ goldenSpecsWithNote proxy mNote = do
       exists <- doesFileExist goldenFile
       if exists
         then compareWithGolden proxy goldenFile
-        else createGoldenfile proxy goldenFile
+        else createGoldenfile sampleSize proxy goldenFile
 
 mkGoldenFile :: Typeable a => Proxy a -> FilePath
 mkGoldenFile proxy =
@@ -60,11 +60,11 @@ mkFaultyFile proxy =
   "golden.json" </> show (typeRep proxy) <.> "faulty" <.> "json"
 
 createGoldenfile :: forall a . (Show a, Arbitrary a, ToJSON a) =>
-  Proxy a -> FilePath -> IO ()
-createGoldenfile proxy goldenFile = do
+  Int -> Proxy a -> FilePath -> IO ()
+createGoldenfile sampleSize proxy goldenFile = do
   createDirectoryIfMissing True (takeDirectory goldenFile)
   rSeed <- randomIO
-  rSamples <- mkRandomSamples proxy rSeed
+  rSamples <- mkRandomSamples sampleSize proxy rSeed
   writeFile goldenFile (encodePretty rSamples)
   putStrLn $
     "\n" ++
@@ -78,7 +78,8 @@ compareWithGolden :: forall a .
   Proxy a -> FilePath -> IO ()
 compareWithGolden proxy goldenFile = do
   goldenSeed <- readSeed =<< readFile goldenFile
-  newSamples <- mkRandomSamples proxy goldenSeed
+  sampleSize <- readSampleSize =<< readFile goldenFile
+  newSamples <- mkRandomSamples sampleSize proxy goldenSeed
   whenFails (writeComparisonFile newSamples) $ do
     goldenSamples :: RandomSamples a <-
       either (throwIO . ErrorCall) return =<<
@@ -96,8 +97,9 @@ compareWithGolden proxy goldenFile = do
         "INFO: Written the current encodings into " ++ mkFaultyFile proxy ++ "."
 
 mkRandomSamples :: forall a . Arbitrary a =>
-  Proxy a -> Int -> IO (RandomSamples a)
-mkRandomSamples Proxy rSeed = RandomSamples rSeed <$> generate gen
+  Int -> Proxy a -> Int -> IO (RandomSamples a)
+mkRandomSamples sampleSize Proxy rSeed = RandomSamples rSeed <$> generate gen
   where
+    correctedSampleSize = if sampleSize <= 0 then 1 else sampleSize
     gen :: Gen [a]
-    gen = setSeed rSeed $ replicateM 5 (arbitrary :: Gen a)
+    gen = setSeed rSeed $ replicateM correctedSampleSize (arbitrary :: Gen a)

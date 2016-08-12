@@ -27,6 +27,7 @@ roundtripSpecs :: forall a .
   Proxy a -> Spec
 roundtripSpecs proxy = genericAesonRoundtripWithNote proxy Nothing
 
+-- | use this directly if you want to add your own notes.
 genericAesonRoundtripWithNote :: forall a .
   (Typeable a, Eq a, Show a, Arbitrary a, ToJSON a, FromJSON a) =>
   Proxy a -> Maybe String -> Spec

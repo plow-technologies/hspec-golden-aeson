@@ -1,12 +1,12 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Test.Aeson.GenericSpecs (
-  -- for Arbitrary testing
+  -- * Arbitrary testing
   goldenSpecs
 , roundtripSpecs
 , roundtripAndGoldenSpecs
 
-  -- for ToADTArbitrary testing
+  -- * ToADTArbitrary testing
 , goldenADTSpecs
 , roundtripADTSpecs
 , roundtripAndGoldenADTSpecs
@@ -30,18 +30,26 @@ import           Test.Hspec
 import           Test.QuickCheck
 import           Test.QuickCheck.Arbitrary.ADT
 
+-- | run roundtrip and golden test for a type.
+-- sampleSize is used only when creating the golden file. When it is
+-- compared, the sampleSize is derived from the file.
 roundtripAndGoldenSpecs :: forall a.
   (Arbitrary a, Eq a, Show a, ToJSON a, FromJSON a, Typeable a)
-  => Proxy a
+  => Int
+  -> Proxy a
   -> Spec
-roundtripAndGoldenSpecs Proxy = do
-  roundtripSpecs (Proxy :: Proxy a)
-  goldenSpecs (Proxy :: Proxy a)
+roundtripAndGoldenSpecs sampleSize proxy = do
+  roundtripSpecs proxy
+  goldenSpecs sampleSize proxy
 
+-- | run roundtrip and golden tests for all constructors of a type.
+-- sampleSize is used only when creating the golden files. When they are
+-- compared, the sampleSize is derived from the file.
 roundtripAndGoldenADTSpecs :: forall a.
   (Arbitrary a, ToADTArbitrary a, Eq a, Show a, ToJSON a, FromJSON a)
-  => Proxy a
+  => Int
+  -> Proxy a
   -> Spec
-roundtripAndGoldenADTSpecs Proxy = do
-  roundtripADTSpecs (Proxy :: Proxy a)
-  goldenADTSpecs (Proxy :: Proxy a)
+roundtripAndGoldenADTSpecs sampleSize proxy = do
+  roundtripADTSpecs proxy
+  goldenADTSpecs sampleSize proxy

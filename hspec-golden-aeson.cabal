@@ -1,7 +1,7 @@
 name:                hspec-golden-aeson
 version:             0.1.0.0
-synopsis:            Initial project template from stack
-description:         Please see README.md
+synopsis:            Use tests to monitor changes in Aeson serialization
+description:         Use tests to monitor changes in Aeson serialization
 homepage:            https://github.com/plow-technologies/hspec-golden-aeson#readme
 license:             BSD3
 license-file:        LICENSE

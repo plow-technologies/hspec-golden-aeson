@@ -13,6 +13,7 @@ import           Prelude
 import           Test.Hspec
 import           Test.QuickCheck
 
+-- | put brackets around a String.
 addBrackets :: String -> String
 addBrackets s =
   if ' ' `elem` s
@@ -27,6 +28,7 @@ shouldBeIdentity :: (Eq a, Show a, Arbitrary a) =>
 shouldBeIdentity Proxy function =
   property $ \ (a :: a) -> function a `shouldReturn` a
 
+-- | run decode in IO, if it returns Left then throw an error.
 aesonDecodeIO :: FromJSON a => ByteString -> IO a
 aesonDecodeIO bs = case eitherDecode bs of
   Right a -> return a
