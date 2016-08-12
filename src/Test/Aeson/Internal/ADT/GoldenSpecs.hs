@@ -11,13 +11,11 @@ import           Control.Arrow
 import           Control.Exception
 import           Control.Monad
 
-import           Data.Aeson                (ToJSON, FromJSON,Value)
+import           Data.Aeson                (ToJSON, FromJSON)
 import qualified Data.Aeson                as A
 import           Data.Aeson.Encode.Pretty
-import           Data.ByteString.Lazy      (ByteString,writeFile,readFile)
+import           Data.ByteString.Lazy      (writeFile, readFile)
 import           Data.Proxy
-
-import           GHC.Generics
 
 import           Prelude            hiding (writeFile,readFile)
 
@@ -29,8 +27,6 @@ import           Test.Aeson.Internal.RandomSamples
 import           Test.Hspec
 import           Test.QuickCheck
 import           Test.QuickCheck.Arbitrary.ADT
-import           Test.QuickCheck.Gen
-import           Test.QuickCheck.Random
 
 goldenADTSpecs :: forall a.
   (ToADTArbitrary a, Eq a, Show a, Arbitrary a, ToJSON a, FromJSON a)
@@ -43,7 +39,7 @@ goldenADTSpecsWithNote :: forall a.
   => Proxy a
   -> Maybe String
   -> Spec
-goldenADTSpecsWithNote proxy mNote = do
+goldenADTSpecsWithNote Proxy mNote = do
   (typeName,constructors) <- runIO $ fmap (_adtTypeName &&& _adtCAPs) <$> generate $ toADTArbitrary (Proxy :: Proxy a)
   describe ("JSON encoding of " ++ typeName ++ note) $
     mapM_ (testConstructor typeName) constructors
@@ -82,7 +78,7 @@ compareWithGolden typeName cap goldenFile = do
       readFile goldenFile
     newSamples `shouldBe` goldenSamples
   where
-    whenFails :: forall a b. IO b -> IO a -> IO a
+    whenFails :: forall b c. IO c -> IO b -> IO b
     whenFails = flip onException
     faultyFile = mkFaultyFilePath typeName cap
     writeComparisonFile newSamples = do
@@ -94,9 +90,9 @@ compareWithGolden typeName cap goldenFile = do
 createGoldenFile :: forall a. (ToJSON a, ToADTArbitrary a) => ConstructorArbitraryPair a -> FilePath -> IO ()
 createGoldenFile cap goldenFile = do
   createDirectoryIfMissing True (takeDirectory goldenFile)
-  seed <- randomIO :: IO Int
-  samples <- mkRandomADTSamplesForConstructor (Proxy :: Proxy a) (_capConstructor cap) seed
-  writeFile goldenFile $ encodePretty samples
+  rSeed <- randomIO :: IO Int
+  rSamples <- mkRandomADTSamplesForConstructor (Proxy :: Proxy a) (_capConstructor cap) rSeed
+  writeFile goldenFile $ encodePretty rSamples
 
   putStrLn $
     "\n" ++
@@ -117,11 +113,11 @@ mkRandomADTSamplesForConstructor :: forall a.
   -> String
   -> Int
   -> IO (RandomSamples a)
-mkRandomADTSamplesForConstructor Proxy conName seed = do
+mkRandomADTSamplesForConstructor Proxy conName rSeed = do
   generatedADTs <- generate gen
   let caps         = concat $ _adtCAPs <$> generatedADTs
       filteredCAPs = filter (\x -> _capConstructor x == conName) caps
       arbs         = _capArbitrary <$> filteredCAPs
-  return $ RandomSamples seed arbs
+  return $ RandomSamples rSeed arbs
   where
-    gen = setSeed seed $ replicateM 5 (toADTArbitrary (Proxy :: Proxy a))
+    gen = setSeed rSeed $ replicateM 5 (toADTArbitrary (Proxy :: Proxy a))

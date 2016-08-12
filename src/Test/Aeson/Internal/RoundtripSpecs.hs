@@ -4,10 +4,8 @@
 module Test.Aeson.Internal.RoundtripSpecs where
 
 import           Control.Arrow
-import           Control.Exception
 import qualified Data.Aeson as Aeson
 import           Data.Aeson as Aeson hiding (encode)
-import           Data.ByteString.Lazy (ByteString)
 import           Data.Typeable
 
 import           Test.Aeson.Internal.Utils

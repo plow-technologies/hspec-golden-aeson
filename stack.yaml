@@ -2,9 +2,10 @@ resolver: lts-6.4
 
 packages:
 - '.'
-- location:
-    git: git@github.com:plow-technologies/quickcheck-arbitrary-adt.git
-    commit: 07a51c17282baa6a6cb401a9cf4c8ba565a47a86
+#- location:
+#    git: git@github.com:plow-technologies/quickcheck-arbitrary-adt.git
+#    commit: 07a51c17282baa6a6cb401a9cf4c8ba565a47a86
+- "../quickcheck-arbitrary-adt"
 
 extra-deps: []
 

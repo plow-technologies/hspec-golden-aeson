@@ -4,19 +4,13 @@
 module Test.Aeson.Internal.RandomSamples where
 
 import           Control.Exception
-import           Control.Monad
 
 import           Data.Aeson
 import           Data.ByteString.Lazy (ByteString)
-import           Data.Proxy
 
 import           GHC.Generics
 
-import           System.Random
-
-import           Test.Hspec
 import           Test.QuickCheck
-import           Test.QuickCheck.Arbitrary.ADT
 import           Test.QuickCheck.Gen
 import           Test.QuickCheck.Random
 
@@ -35,10 +29,10 @@ instance FromJSON a => FromJSON (RandomSamples a)
 instance ToJSON   a => ToJSON   (RandomSamples a)
 
 setSeed :: Int -> Gen a -> Gen a
-setSeed seed (MkGen g) = MkGen $ \ _randomSeed size -> g (mkQCGen seed) size
+setSeed rSeed (MkGen g) = MkGen $ \ _randomSeed size -> g (mkQCGen rSeed) size
 
 -- reads the seed without looking at the samples
 readSeed :: ByteString -> IO Int
 readSeed s = case eitherDecode s :: Either String (RandomSamples Value) of
-  Right samples -> return $ seed samples
+  Right rSamples -> return $ seed rSamples
   Left err -> throwIO $ ErrorCall err

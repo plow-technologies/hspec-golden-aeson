@@ -12,8 +12,6 @@ import           Data.ByteString.Lazy hiding (putStrLn)
 import           Data.Proxy
 import           Data.Typeable
 
-import           GHC.Generics
-
 import           Prelude hiding (readFile, writeFile)
 
 import           System.Directory
@@ -24,8 +22,6 @@ import           Test.Aeson.Internal.RandomSamples
 import           Test.Aeson.Internal.Utils
 import           Test.Hspec
 import           Test.QuickCheck
-import           Test.QuickCheck.Gen
-import           Test.QuickCheck.Random
 
 -- | Allows to obtain tests that will try to ensure that the JSON encoding
 -- didn't change unintentionally. To this end 'goldenSpecs' will
@@ -67,9 +63,9 @@ createGoldenfile :: forall a . (Show a, Arbitrary a, ToJSON a) =>
   Proxy a -> FilePath -> IO ()
 createGoldenfile proxy goldenFile = do
   createDirectoryIfMissing True (takeDirectory goldenFile)
-  seed <- randomIO
-  samples <- mkRandomSamples proxy seed
-  writeFile goldenFile (encodePretty samples)
+  rSeed <- randomIO
+  rSamples <- mkRandomSamples proxy rSeed
+  writeFile goldenFile (encodePretty rSamples)
   putStrLn $
     "\n" ++
     "WARNING: Running for the first time, not testing anything.\n" ++
@@ -90,7 +86,7 @@ compareWithGolden proxy goldenFile = do
       readFile goldenFile
     newSamples `shouldBe` goldenSamples
   where
-    whenFails :: forall a b . IO b -> IO a -> IO a
+    whenFails :: forall b c . IO c -> IO b -> IO b
     whenFails = flip onException
 
     writeComparisonFile newSamples = do
@@ -101,7 +97,7 @@ compareWithGolden proxy goldenFile = do
 
 mkRandomSamples :: forall a . Arbitrary a =>
   Proxy a -> Int -> IO (RandomSamples a)
-mkRandomSamples Proxy seed = RandomSamples seed <$> generate gen
+mkRandomSamples Proxy rSeed = RandomSamples rSeed <$> generate gen
   where
     gen :: Gen [a]
-    gen = setSeed seed $ replicateM 5 (arbitrary :: Gen a)
+    gen = setSeed rSeed $ replicateM 5 (arbitrary :: Gen a)

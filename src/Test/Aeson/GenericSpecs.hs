@@ -34,7 +34,7 @@ roundtripAndGoldenSpecs :: forall a.
   (Arbitrary a, Eq a, Show a, ToJSON a, FromJSON a, Typeable a)
   => Proxy a
   -> Spec
-roundtripAndGoldenSpecs proxy = do
+roundtripAndGoldenSpecs Proxy = do
   roundtripSpecs (Proxy :: Proxy a)
   goldenSpecs (Proxy :: Proxy a)
 
@@ -42,6 +42,6 @@ roundtripAndGoldenADTSpecs :: forall a.
   (Arbitrary a, ToADTArbitrary a, Eq a, Show a, ToJSON a, FromJSON a)
   => Proxy a
   -> Spec
-roundtripAndGoldenADTSpecs proxy = do
+roundtripAndGoldenADTSpecs Proxy = do
   roundtripADTSpecs (Proxy :: Proxy a)
   goldenADTSpecs (Proxy :: Proxy a)

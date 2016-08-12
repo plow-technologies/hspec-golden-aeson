@@ -4,11 +4,9 @@
 module Test.Aeson.Internal.ADT.RoundtripSpecs where
 
 import           Control.Arrow
-import           Control.Exception
 
 import qualified Data.Aeson as Aeson
 import           Data.Aeson as Aeson hiding (encode)
-import           Data.ByteString.Lazy (ByteString)
 import           Data.Typeable
 
 import           Test.Aeson.Internal.Utils
@@ -39,7 +37,7 @@ genericAesonRoundtripADTWithNote :: forall a.
   => Proxy a
   -> Maybe String
   -> Spec
-genericAesonRoundtripADTWithNote proxy mNote = do
+genericAesonRoundtripADTWithNote _ mNote = do
   adt <- runIO $ generate (toADTArbitrary (Proxy :: Proxy a))
   describe ("JSON encoding of " ++ addBrackets (_adtTypeName adt) ++ note) $
     it "allows to encode values with aeson and read them back" $
