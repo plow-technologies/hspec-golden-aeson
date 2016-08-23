@@ -39,9 +39,9 @@ genericAesonRoundtripADTWithNote :: forall a.
   -> Spec
 genericAesonRoundtripADTWithNote _ mNote = do
   adt <- runIO $ generate (toADTArbitrary (Proxy :: Proxy a))
-  describe ("JSON encoding of " ++ addBrackets (_adtTypeName adt) ++ note) $
+  describe ("JSON encoding of " ++ addBrackets (adtTypeName adt) ++ note) $
     it "allows to encode values with aeson and read them back" $
-      forM_ (_adtCAPs adt) $ \cap ->
-        (Aeson.encode >>> aesonDecodeIO) (_capArbitrary cap) `shouldReturn` _capArbitrary cap
+      forM_ (adtCAPs adt) $ \cap ->
+        (Aeson.encode >>> aesonDecodeIO) (capArbitrary cap) `shouldReturn` capArbitrary cap
   where
     note = maybe "" (" " ++) mNote

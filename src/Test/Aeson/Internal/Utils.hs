@@ -13,6 +13,20 @@ import           Prelude
 import           Test.Hspec
 import           Test.QuickCheck
 
+
+data Settings = Settings {
+  goldenDirectoryOption       :: GoldenDirectoryOption
+, useModuleNameAsSubDirectory :: Bool
+, sampleSize                  :: Int
+}
+
+data GoldenDirectoryOption = CustomDirectoryName String | GoldenDirectory
+
+defaultSettings :: Settings
+defaultSettings = Settings GoldenDirectory False 5
+
+-- data GoldenFileOption      = CustomFileName      String | UseConstructorName
+
 -- | put brackets around a String.
 addBrackets :: String -> String
 addBrackets s =

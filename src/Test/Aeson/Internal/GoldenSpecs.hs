@@ -1,4 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Test.Aeson.Internal.GoldenSpecs where
@@ -36,32 +37,51 @@ import           Test.QuickCheck
 -- You can consider putting the golden files under revision control. That way
 -- it'll be obvious when JSON encodings change.
 goldenSpecs :: (Eq a, Show a, Typeable a, Arbitrary a, ToJSON a, FromJSON a) =>
-  Int -> Proxy a -> Spec
-goldenSpecs sampleSize proxy = goldenSpecsWithNote sampleSize proxy Nothing
+  Settings -> Proxy a -> Spec
+goldenSpecs settings proxy = goldenSpecsWithNote settings proxy Nothing
 
-goldenSpecsWithNote :: (Eq a, Show a, Typeable a, Arbitrary a, ToJSON a, FromJSON a) =>
-  Int -> Proxy a -> Maybe String -> Spec
-goldenSpecsWithNote sampleSize proxy mNote = do
-  let goldenFile = mkGoldenFile proxy
+goldenSpecsWithNote :: forall a. (Eq a, Show a, Typeable a, Arbitrary a, ToJSON a, FromJSON a) =>
+  Settings -> Proxy a -> Maybe String -> Spec
+goldenSpecsWithNote settings@Settings{..} proxy mNote = do
+  mModuleName <-
+    if useModuleNameAsSubDirectory
+      then return Nothing
+      else do
+        arbA <- runIO $ generate (arbitrary :: Gen a)
+        return $ Just $ show . tyConModule . typeRepTyCon . typeOf $ arbA
+
+  let goldenFile = mkGoldenFile topDir mModuleName proxy
       note = maybe "" (" " ++) mNote
+
   describe ("JSON encoding of " ++ addBrackets (show (typeRep proxy)) ++ note) $
     it ("produces the same JSON as is found in " ++ goldenFile) $ do
       exists <- doesFileExist goldenFile
       if exists
-        then compareWithGolden proxy goldenFile
-        else createGoldenfile sampleSize proxy goldenFile
+        then compareWithGolden topDir mModuleName proxy goldenFile
+        else createGoldenfile settings proxy goldenFile
+  where
+    topDir = case goldenDirectoryOption of
+      GoldenDirectory -> "golden"
+      CustomDirectoryName d -> d
 
-mkGoldenFile :: Typeable a => Proxy a -> FilePath
-mkGoldenFile proxy =
-  "golden.json" </> show (typeRep proxy) <.> "json"
+-- split on period, replace with </>
+-- Data.List split
 
-mkFaultyFile :: Typeable a => Proxy a -> FilePath
-mkFaultyFile proxy =
-  "golden.json" </> show (typeRep proxy) <.> "faulty" <.> "json"
+mkGoldenFile :: Typeable a => FilePath -> Maybe FilePath -> Proxy a -> FilePath
+mkGoldenFile topDir mModuleName proxy =
+  case mModuleName of
+    Nothing         -> topDir </> show (typeRep proxy) <.> "json"
+    Just moduleName -> topDir </> moduleName </> show (typeRep proxy) <.> "json"
+
+mkFaultyFile :: Typeable a => FilePath -> Maybe FilePath -> Proxy a -> FilePath
+mkFaultyFile topDir mModuleName proxy =
+  case mModuleName of
+    Nothing         -> topDir </> show (typeRep proxy) <.> "faulty" <.> "json"
+    Just moduleName -> topDir </> moduleName </> show (typeRep proxy) <.> "faulty" <.> "json"
 
 createGoldenfile :: forall a . (Show a, Arbitrary a, ToJSON a) =>
-  Int -> Proxy a -> FilePath -> IO ()
-createGoldenfile sampleSize proxy goldenFile = do
+  Settings -> Proxy a -> FilePath -> IO ()
+createGoldenfile Settings{..} proxy goldenFile = do
   createDirectoryIfMissing True (takeDirectory goldenFile)
   rSeed <- randomIO
   rSamples <- mkRandomSamples sampleSize proxy rSeed
@@ -75,8 +95,8 @@ createGoldenfile sampleSize proxy goldenFile = do
 
 compareWithGolden :: forall a .
   (Eq a, Show a, Typeable a, Arbitrary a, ToJSON a, FromJSON a) =>
-  Proxy a -> FilePath -> IO ()
-compareWithGolden proxy goldenFile = do
+  FilePath -> Maybe FilePath -> Proxy a -> FilePath -> IO ()
+compareWithGolden topDir mModuleName proxy goldenFile = do
   goldenSeed <- readSeed =<< readFile goldenFile
   sampleSize <- readSampleSize =<< readFile goldenFile
   newSamples <- mkRandomSamples sampleSize proxy goldenSeed
@@ -90,11 +110,13 @@ compareWithGolden proxy goldenFile = do
     whenFails :: forall b c . IO c -> IO b -> IO b
     whenFails = flip onException
 
-    writeComparisonFile newSamples = do
-      writeFile (mkFaultyFile proxy) (encodePretty newSamples)
+    faultyFile = mkFaultyFile topDir mModuleName proxy
+
+    writeComparisonFile newSamples = do  
+      writeFile faultyFile (encodePretty newSamples)
       putStrLn $
         "\n" ++
-        "INFO: Written the current encodings into " ++ mkFaultyFile proxy ++ "."
+        "INFO: Written the current encodings into " ++ faultyFile ++ "."
 
 mkRandomSamples :: forall a . Arbitrary a =>
   Int -> Proxy a -> Int -> IO (RandomSamples a)

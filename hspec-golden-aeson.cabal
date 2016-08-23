@@ -1,5 +1,5 @@
 name:                hspec-golden-aeson
-version:             0.1.0.0
+version:             0.2.0.0
 synopsis:            Use tests to monitor changes in Aeson serialization
 description:         Use tests to monitor changes in Aeson serialization
 homepage:            https://github.com/plow-technologies/hspec-golden-aeson#readme
@@ -30,7 +30,7 @@ library
                      , filepath
                      , hspec
                      , random
-                     , quickcheck-arbitrary-adt
+                     , quickcheck-arbitrary-adt >= 0.2.0.0
                      , QuickCheck
                      , transformers
   default-language:    Haskell2010
