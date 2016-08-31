@@ -30,7 +30,7 @@ import qualified Test.Types.NewSelector         as TNS
 -- summaryFailures
 spec :: Spec
 spec = do
-  describe "Test.Aeson.GenericSpecs: roundTrip" $ do
+  describe "Test.Aeson.GenericSpecs: roundADTTrip" $ do
     it "should pass when ToJSON and FromJSON are defined appropriately" $ do
       (s1,_) <- hspecSilently $ roundtripADTSpecs (Proxy :: Proxy T.Person)
       summaryFailures s1 `shouldBe` 0
@@ -38,6 +38,38 @@ spec = do
     it "should fail when ToJSON and FromJSON definitions do not match" $ do
       (s1,_) <- hspecSilently $ roundtripADTSpecs (Proxy :: Proxy MTFS.Person)
       summaryFailures s1 `shouldBe` 1
+
+  describe "Test.Aeson.GenericSpecs: goldenSpecs" $ do
+    it "create golden test files" $ do
+      -- clean up previously existing golden folder
+      bg <- doesDirectoryExist "golden"
+      if bg
+        then removeDirectoryRecursive "golden"
+        else return ()
+
+      -- files for Person and SumType do not exist
+      -- create them by running goldenADTSpecs
+      _ <- hspecSilently $ goldenSpecs defaultSettings (Proxy :: Proxy T.Person)
+      _ <- hspecSilently $ goldenSpecs defaultSettings (Proxy :: Proxy T.SumType)
+
+      doesFileExist "golden/Person.json"  `shouldReturn` True
+      doesFileExist "golden/SumType.json" `shouldReturn` True
+
+    it "create golden test files" $ do
+      -- clean up previously existing golden folder
+      bg <- doesDirectoryExist "golden"
+      if bg
+        then removeDirectoryRecursive "golden"
+        else return ()
+
+      -- files for Person and SumType do not exist
+      -- create them by running goldenADTSpecs
+      _ <- hspecSilently $ goldenSpecs (defaultSettings { useModuleNameAsSubDirectory = True }) (Proxy :: Proxy T.Person)
+      _ <- hspecSilently $ goldenSpecs (defaultSettings { useModuleNameAsSubDirectory = True }) (Proxy :: Proxy T.SumType)
+
+      doesFileExist "golden/Test.Types/Person.json"  `shouldReturn` True
+      doesFileExist "golden/Test.Types/SumType.json" `shouldReturn` True
+
 
   describe "Test.Aeson.GenericSpecs: goldenADTSpecs" $ do
     it "create golden test files" $ do
