@@ -1,3 +1,13 @@
+{-|
+Module      : Test.Aeson.Internal.Utils
+Description : Utility types, functions and values
+Copyright   : (c) Plow Technologies, 2016
+License     : BSD3
+Maintainer  : mchaver@gmail.com
+Stability   : Beta
+-}
+
+
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Test.Aeson.Internal.Utils where
@@ -15,17 +25,19 @@ import           Test.QuickCheck
 
 
 data Settings = Settings {
-  goldenDirectoryOption       :: GoldenDirectoryOption
-, useModuleNameAsSubDirectory :: Bool
-, sampleSize                  :: Int
+  goldenDirectoryOption       :: GoldenDirectoryOption -- ^ use a custom directory name or use the generic "golden" directory.
+
+, useModuleNameAsSubDirectory :: Bool -- ^ If true, use the module name in the file path, otherwise ignore it.
+
+, sampleSize                  :: Int -- ^ How many instances of each type you want. If you use ADT versions than it will use the sample size for each constructor.
 }
 
+-- | A custom directory name or a preselected directory name.
 data GoldenDirectoryOption = CustomDirectoryName String | GoldenDirectory
 
+-- | The default settings for general use cases.
 defaultSettings :: Settings
 defaultSettings = Settings GoldenDirectory False 5
-
--- data GoldenFileOption      = CustomFileName      String | UseConstructorName
 
 -- | put brackets around a String.
 addBrackets :: String -> String

@@ -1,6 +1,16 @@
+{-|
+Module      : Test.Aeson.Internal.ADT.RoundtripSpecs
+Description : Roundtrip tests for ToADTArbitrary
+Copyright   : (c) Plow Technologies, 2016
+License     : BSD3
+Maintainer  : mchaver@gmail.com
+Stability   : Beta
+
+Internal module, use at your own risk.
+-}
+
 {-# LANGUAGE ScopedTypeVariables #-}
 
--- | Internal module, use at your own risk.
 module Test.Aeson.Internal.ADT.RoundtripSpecs where
 
 import           Control.Arrow
@@ -16,12 +26,12 @@ import           Test.QuickCheck.Arbitrary.ADT
 
 import Control.Monad
 
--- | A roundtrip test to check whether values of the given type
--- can be successfully converted to JSON and back to a Haskell value.
+-- | A roundtrip test to check whether values of all of constructors of the
+-- given type can be successfully converted to JSON and back to a Haskell value.
 --
--- 'roundtripSpecs' will
+-- 'roundtripADTSpecs' will
 --
--- - create random values using 'Arbitrary',
+-- - create random values for each constructor using 'ToADTArbitrary',
 -- - convert them into JSON using 'ToJSON',
 -- - read them back into Haskell using 'FromJSON' and
 -- - make sure that the result is the same as the value it started with
@@ -32,6 +42,8 @@ roundtripADTSpecs :: forall a.
   -> Spec
 roundtripADTSpecs proxy = genericAesonRoundtripADTWithNote proxy Nothing
 
+-- | Same as 'roundtripADTSpecs' but has the option of passing a note to the
+-- 'describe' function.
 genericAesonRoundtripADTWithNote :: forall a.
   (ToADTArbitrary a, Eq a, Show a, Arbitrary a, ToJSON a, FromJSON a)
   => Proxy a

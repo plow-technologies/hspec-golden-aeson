@@ -1,3 +1,14 @@
+{-|
+Module      : Test.Aeson.Internal.ADT.GoldenSpecs
+Description : Golden tests for ToADTArbitrary
+Copyright   : (c) Plow Technologies, 2016
+License     : BSD3
+Maintainer  : mchaver@gmail.com
+Stability   : Beta
+
+Internal module, use at your own risk.
+-}
+
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE OverloadedStrings    #-}
@@ -30,12 +41,25 @@ import           Test.Hspec
 import           Test.QuickCheck
 import           Test.QuickCheck.Arbitrary.ADT
 
--- | for a type a, create a set of golden files if they do not exist, compare
--- with golden file if it exists. Golden file encodes json format of a type
+-- | Tests to ensure that JSON encoding has not unintentionally changed. This
+-- could be caused by the following:
+--
+-- - A type's instances of `ToJSON` or 'FromJSON' have changed.
+-- - Selectors have been edited, added or deleted.
+-- - You have changed version of Aeson the way Aeson serialization has changed
+--   works.
+--
+-- If you run this function and the golden files do not
+-- exist, it will create them for each constructor. It they do exist, it will
+-- compare with golden file if it exists. Golden file encodes json format of a
+-- type. It is recommended that you put the golden files under revision control
+-- to help monitor changes.
 goldenADTSpecs :: forall a. (ToADTArbitrary a, Eq a, Show a, Arbitrary a, ToJSON a, FromJSON a) =>
   Settings -> Proxy a -> Spec
 goldenADTSpecs settings proxy = goldenADTSpecsWithNote settings proxy Nothing
 
+-- | same as 'goldenADTSpecs' but has the option of passing a note to the
+-- 'describe' function.
 goldenADTSpecsWithNote :: forall a. (ToADTArbitrary a, Eq a, Show a, Arbitrary a, ToJSON a, FromJSON a) =>
   Settings -> Proxy a -> Maybe String -> Spec
 goldenADTSpecsWithNote settings Proxy mNote = do
@@ -45,6 +69,7 @@ goldenADTSpecsWithNote settings Proxy mNote = do
   where
     note = maybe "" (" " ++) mNote
 
+-- | test a single set of values from a constructor for a given type.
 testConstructor :: forall a. (Eq a, Show a, FromJSON a, ToJSON a, ToADTArbitrary a) =>
   Settings -> String -> String -> ConstructorArbitraryPair a -> SpecWith ( Arg (IO ()))
 testConstructor Settings{..} moduleName typeName cap = do
@@ -62,6 +87,8 @@ testConstructor Settings{..} moduleName typeName cap = do
       True  -> Just moduleName
       False -> Nothing
 
+-- | The golden files already exist. Serialize values with the same seed from
+-- the golden files of each constructor and compare.
 compareWithGolden :: forall a. (Show a, Eq a, FromJSON a, ToJSON a, ToADTArbitrary a) =>
   String -> Maybe String -> String -> ConstructorArbitraryPair a -> FilePath -> IO ()
 compareWithGolden topDir mModuleName typeName cap goldenFile = do
@@ -86,6 +113,7 @@ compareWithGolden topDir mModuleName typeName cap goldenFile = do
         "\n" ++
         "INFO: Written the current encodings into " ++ faultyFile ++ "."
 
+-- | The golden files do not exist. Create them for each constructor.
 createGoldenFile :: forall a. (ToJSON a, ToADTArbitrary a) =>
   Int -> ConstructorArbitraryPair a -> FilePath -> IO ()
 createGoldenFile sampleSize cap goldenFile = do
@@ -101,19 +129,26 @@ createGoldenFile sampleSize cap goldenFile = do
     "  will compare JSON encodings with this from now on.\n" ++
     "  Please, consider putting " ++ goldenFile ++ " under version control."
 
-
+-- | Create the file path for the golden file. Optionally use the module name to
+-- help avoid name collissions. Different modules can have types of the same
+-- name.
 mkGoldenFilePath :: forall a. FilePath -> Maybe FilePath -> FilePath -> ConstructorArbitraryPair a -> FilePath
 mkGoldenFilePath topDir mModuleName typeName cap =
   case mModuleName of
     Nothing -> topDir </> typeName </> capConstructor cap <.> "json"
     Just moduleName -> topDir </> moduleName </> typeName </> capConstructor cap <.> "json"
 
+-- | Create the file path to save results from a failed golden test. Optionally
+-- use the module name to help avoid name collisions.  Different modules can
+-- have types of the same name.
 mkFaultyFilePath :: forall a. FilePath -> Maybe FilePath -> FilePath -> ConstructorArbitraryPair a -> FilePath
 mkFaultyFilePath topDir mModuleName typeName cap =
   case mModuleName of
     Nothing -> topDir </> typeName </> capConstructor cap <.> "faulty" <.> "json"
     Just moduleName -> topDir </> moduleName </> typeName </> capConstructor cap <.> "faulty" <.> "json"
 
+-- | Create a number of arbitrary instances of a particular constructor given
+-- a sample size and a random seed.
 mkRandomADTSamplesForConstructor :: forall a. (ToADTArbitrary a) =>
   Int -> Proxy a -> String -> Int -> IO (RandomSamples a)
 mkRandomADTSamplesForConstructor sampleSize Proxy conName rSeed = do

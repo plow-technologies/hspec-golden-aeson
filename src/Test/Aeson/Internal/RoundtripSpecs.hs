@@ -1,6 +1,16 @@
+{-|
+Module      : Test.Aeson.Internal.RoundtripSpecs
+Description : Roundtrip tests for Arbitrary
+Copyright   : (c) Plow Technologies, 2016
+License     : BSD3
+Maintainer  : mchaver@gmail.com
+Stability   : Beta
+
+Internal module, use at your own risk.
+-}
+
 {-# LANGUAGE ScopedTypeVariables #-}
 
--- | Internal module, use at your own risk.
 module Test.Aeson.Internal.RoundtripSpecs where
 
 import           Control.Arrow
@@ -12,8 +22,8 @@ import           Test.Aeson.Internal.Utils
 import           Test.Hspec
 import           Test.QuickCheck
 
--- | Allows to obtain a roundtrip test to check whether values of the given type
--- can be successfully converted to JSON and back.
+-- | A roundtrip test to check whether values of the given type
+-- can be successfully converted to JSON and back to a Haskell value.
 --
 -- 'roundtripSpecs' will
 --
@@ -27,7 +37,8 @@ roundtripSpecs :: forall a .
   Proxy a -> Spec
 roundtripSpecs proxy = genericAesonRoundtripWithNote proxy Nothing
 
--- | use this directly if you want to add your own notes.
+-- | Same as 'roundtripSpecs', but optionally add notes to the 'describe'
+-- function.
 genericAesonRoundtripWithNote :: forall a .
   (Typeable a, Eq a, Show a, Arbitrary a, ToJSON a, FromJSON a) =>
   Proxy a -> Maybe String -> Spec
