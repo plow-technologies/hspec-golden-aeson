@@ -20,7 +20,9 @@ instance ToJSON Person where
     ]
 
 instance FromJSON Person where
-  parseJSON (Object o) = Person <$> o .: "name" <*> o .: "age"
+  parseJSON = withObject "Expected a Person object" $ \o ->
+    Person <$> o .: "name"
+           <*> o .: "age"
 
 instance ToADTArbitrary Person
 instance Arbitrary Person where

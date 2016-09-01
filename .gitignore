@@ -15,7 +15,9 @@ cabal.sandbox.config
 *.aux
 *.hp
 *.eventlog
+*.tar.gz
 .stack-work/
 cabal.project.local
 golden/
 json-tests/
+

@@ -1,4 +1,9 @@
-# Revision history for plow-authentication-db
+# Revision history for hspec-golden-aeson
+
+## 0.2.0.1  -- 2016-09-01
+
+* Fix error in 'goldenSpecsWithNote', behavior for useModuleNameAsSubDirectory was flipped around and also providing the module name surrounded by quotes.
+* Add more tests.
 
 ## 0.2.0.0  -- 2016-08-23
 

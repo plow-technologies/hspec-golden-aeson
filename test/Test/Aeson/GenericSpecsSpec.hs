@@ -2,20 +2,13 @@
 
 module Test.Aeson.GenericSpecsSpec where
 
-import           Control.Monad.IO.Class
-
-import           Data.Aeson
 import           Data.Proxy
-
-import           GHC.Generics
 
 import           System.Directory
 
 import           Test.Aeson.GenericSpecs
 import           Test.Hspec
 import           Test.Hspec.Core.Runner
-import           Test.QuickCheck
-import           Test.QuickCheck.Arbitrary.ADT
 
 import           Test.Utils
 
@@ -30,7 +23,16 @@ import qualified Test.Types.NewSelector         as TNS
 -- summaryFailures
 spec :: Spec
 spec = do
-  describe "Test.Aeson.GenericSpecs: roundADTTrip" $ do
+  describe "Test.Aeson.GenericSpecs: roundtripSpecs" $ do
+    it "should pass when ToJSON and FromJSON are defined appropriately" $ do
+      (s1,_) <- hspecSilently $ roundtripSpecs (Proxy :: Proxy T.Person)
+      summaryFailures s1 `shouldBe` 0
+
+    it "should fail when ToJSON and FromJSON definitions do not match" $ do
+      (s1,_) <- hspecSilently $ roundtripSpecs (Proxy :: Proxy MTFS.Person)
+      summaryFailures s1 `shouldBe` 1
+
+  describe "Test.Aeson.GenericSpecs: roundtripADTSpecs" $ do
     it "should pass when ToJSON and FromJSON are defined appropriately" $ do
       (s1,_) <- hspecSilently $ roundtripADTSpecs (Proxy :: Proxy T.Person)
       summaryFailures s1 `shouldBe` 0
@@ -69,6 +71,39 @@ spec = do
 
       doesFileExist "golden/Test.Types/Person.json"  `shouldReturn` True
       doesFileExist "golden/Test.Types/SumType.json" `shouldReturn` True
+
+    it "create golden test files in a user defined directory" $ do
+      let topDir = "json-tests"
+      -- clean up previously existing user defined folder
+      bg <- doesDirectoryExist topDir
+      if bg
+        then removeDirectoryRecursive topDir
+        else return ()
+
+      -- files for Person and SumType do not exist
+      -- create them by running goldenADTSpecs
+      _ <- hspecSilently $ goldenSpecs (defaultSettings {goldenDirectoryOption = CustomDirectoryName topDir}) (Proxy :: Proxy T.Person)
+      _ <- hspecSilently $ goldenSpecs (defaultSettings {goldenDirectoryOption = CustomDirectoryName topDir}) (Proxy :: Proxy T.SumType)
+
+      doesFileExist "json-tests/Person.json"  `shouldReturn` True
+      doesFileExist "json-tests/SumType.json" `shouldReturn` True
+
+    it "goldenADTSpecs should pass for existing golden files in which model types and serialization have not changed" $ do
+      (s1,_) <- hspecSilently $ goldenSpecs defaultSettings (Proxy :: Proxy T.Person)
+      (s2,_) <- hspecSilently $ goldenSpecs defaultSettings (Proxy :: Proxy T.SumType)
+      (summaryFailures s1 + summaryFailures s2) `shouldBe` 0
+
+    it "goldenADTSpecs for types which have changed the values of ToJSON or FromJSON keys should fail to match the goldenFiles" $ do
+      (s1,_) <- hspecSilently $ goldenSpecs defaultSettings (Proxy :: Proxy TBS.Person)
+      summaryFailures s1 `shouldBe` 1
+
+    it "goldenADTSpecs for types which have changed the values of ToJSON or FromJSON keys should fail to match the goldenFiles" $ do
+      (s1,_) <- hspecSilently $ goldenSpecs defaultSettings (Proxy :: Proxy TNS.Person)
+      summaryFailures s1 `shouldBe` 1
+
+    it "goldenADTSpecs for types which have altered the name of the selector and using generic implementation of ToJSON and FromJSON should fail to match the goldenFiles" $ do
+      (s1,_) <- hspecSilently $ goldenSpecs defaultSettings (Proxy :: Proxy TAS.Person)
+      summaryFailures s1 `shouldBe` 1
 
 
   describe "Test.Aeson.GenericSpecs: goldenADTSpecs" $ do
