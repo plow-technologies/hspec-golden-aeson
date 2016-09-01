@@ -1,5 +1,5 @@
 name:                hspec-golden-aeson
-version:             0.2.0.0
+version:             0.2.0.1
 synopsis:            Use tests to monitor changes in Aeson serialization
 description:         Use tests to monitor changes in Aeson serialization
 homepage:            https://github.com/plow-technologies/hspec-golden-aeson#readme

@@ -59,10 +59,10 @@ goldenSpecsWithNote :: forall a. (Eq a, Show a, Typeable a, Arbitrary a, ToJSON 
 goldenSpecsWithNote settings@Settings{..} proxy mNote = do
   mModuleName <-
     if useModuleNameAsSubDirectory
-      then return Nothing
-      else do
+      then do
         arbA <- runIO $ generate (arbitrary :: Gen a)
-        return $ Just $ show . tyConModule . typeRepTyCon . typeOf $ arbA
+        return $ Just $ tyConModule . typeRepTyCon . typeOf $ arbA
+      else return Nothing
 
   let goldenFile = mkGoldenFile topDir mModuleName proxy
       note = maybe "" (" " ++) mNote
