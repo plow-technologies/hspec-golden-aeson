@@ -1,5 +1,9 @@
 # Revision history for hspec-golden-aeson
 
+## 0.2.0.2  -- 2016-09-07
+
+* Forgot to add fixes to the test, in previous version they were not compiling.
+
 ## 0.2.0.1  -- 2016-09-01
 
 * Fix error in 'goldenSpecsWithNote', behavior for useModuleNameAsSubDirectory was flipped around and also providing the module name surrounded by quotes.
