@@ -1,5 +1,10 @@
 # Revision history for hspec-golden-aeson
 
+## 0.2.0.3  -- 2016-09-08
+
+* Tests were breaking because Test.Types.MismatchedToAndFromSerialization was
+missing from the cabal file.
+
 ## 0.2.0.2  -- 2016-09-07
 
 * Forgot to add fixes to the test, in previous version they were not compiling.

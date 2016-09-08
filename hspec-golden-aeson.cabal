@@ -43,6 +43,7 @@ test-suite test
                        Test.Types
                        Test.Types.AlteredSelector
                        Test.Types.BrokenSerialization
+                       Test.Types.MismatchedToAndFromSerialization
                        Test.Types.NewSelector
                        Test.Utils
   build-depends:       base
