@@ -53,20 +53,20 @@ import           Test.QuickCheck
 -- compare with golden file if it exists. Golden file encodes json format of a
 -- type. It is recommended that you put the golden files under revision control
 -- to help monitor changes.
-goldenSpecs :: (Eq a, Show a, Typeable a, Arbitrary a, ToJSON a, FromJSON a) =>
+goldenSpecs :: (Typeable a, Arbitrary a, ToJSON a, FromJSON a) =>
   Settings -> Proxy a -> Spec
 goldenSpecs settings proxy = goldenSpecsWithNote settings proxy Nothing
 
 -- | same as 'goldenSpecs' but has the option of passing a note to the
 -- 'describe' function.
-goldenSpecsWithNote :: forall a. (Eq a, Show a, Typeable a, Arbitrary a, ToJSON a, FromJSON a) =>
+goldenSpecsWithNote :: forall a. (Typeable a, Arbitrary a, ToJSON a, FromJSON a) =>
   Settings -> Proxy a -> Maybe String -> Spec
 goldenSpecsWithNote settings@Settings{..} proxy mNote = do
   typeNameInfo    <- runIO $ fromTypeable settings proxy
   goldenSpecsWithNotePlain settings typeNameInfo mNote
 
 -- | same as 'goldenSpecsWithNote' but does not require a Typeable, Eq or Show instance.
-goldenSpecsWithNotePlain :: forall a. (Eq a, Show a, Arbitrary a, ToJSON a, FromJSON a) =>
+goldenSpecsWithNotePlain :: forall a. (Arbitrary a, ToJSON a, FromJSON a) =>
   Settings -> TypeNameInfo a -> Maybe String -> Spec
 goldenSpecsWithNotePlain settings@Settings{..} typeNameInfo@(TypeNameInfo{typeNameTypeName}) mNote = do
   let proxy = Proxy :: Proxy a  
@@ -107,7 +107,7 @@ compareWithGolden typeNameInfo proxy goldenFile = do
         "INFO: Written the current encodings into " ++ faultyFile ++ "."
 
 -- | The golden files do not exist. Create it.
-createGoldenfile :: forall a . (Show a, Arbitrary a, ToJSON a) =>
+createGoldenfile :: forall a . (Arbitrary a, ToJSON a) =>
   Settings -> Proxy a -> FilePath -> IO ()
 createGoldenfile Settings{..} proxy goldenFile = do
   createDirectoryIfMissing True (takeDirectory goldenFile)
