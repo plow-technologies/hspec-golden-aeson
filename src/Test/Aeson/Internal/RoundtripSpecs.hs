@@ -13,15 +13,14 @@ Internal module, use at your own risk.
 
 module Test.Aeson.Internal.RoundtripSpecs where
 
-import           Control.Arrow
-import qualified Data.Aeson as Aeson
+
 import           Data.Aeson as Aeson hiding (encode)
 import           Data.Typeable
 
 import           Test.Aeson.Internal.Utils
 import           Test.Hspec
 import           Test.QuickCheck
-
+import           Test.Hspec.QuickCheck
 -- | A roundtrip test to check whether values of the given type
 -- can be successfully converted to JSON and back to a Haskell value.
 --
@@ -33,17 +32,31 @@ import           Test.QuickCheck
 -- - make sure that the result is the same as the value it started with
 --   (using 'Eq').
 roundtripSpecs :: forall a .
-  (Typeable a, Eq a, Show a, Arbitrary a, ToJSON a, FromJSON a) =>
+  (Typeable a, Arbitrary a, ToJSON a, FromJSON a) =>
   Proxy a -> Spec
 roundtripSpecs proxy = genericAesonRoundtripWithNote proxy Nothing
 
 -- | Same as 'roundtripSpecs', but optionally add notes to the 'describe'
 -- function.
 genericAesonRoundtripWithNote :: forall a .
-  (Typeable a, Eq a, Show a, Arbitrary a, ToJSON a, FromJSON a) =>
+  (Typeable a, Arbitrary a, ToJSON a, FromJSON a) =>
   Proxy a -> Maybe String -> Spec
 genericAesonRoundtripWithNote proxy mNote = do
+  let typeIdentifier = show (typeRep proxy)
+  result <- genericAesonRoundtripWithNotePlain proxy mNote typeIdentifier
+  return result
+
+-- | Same as 'genericAesonRoundtripWithNote', but no need for Typeable, Eq, or Show
+genericAesonRoundtripWithNotePlain :: forall a .
+  (Arbitrary a, ToJSON a, FromJSON a) =>
+  Proxy a -> Maybe String -> String -> Spec
+genericAesonRoundtripWithNotePlain _ mNote typeIdentifier = do
   let note = maybe "" (" " ++) mNote
-  describe ("JSON encoding of " ++ addBrackets (show (typeRep proxy)) ++ note) $
-    it "allows to encode values with aeson and read them back" $ shouldBeIdentity proxy $
-      Aeson.encode >>> aesonDecodeIO
+      checkAesonEncodingEquality' :: JsonShow a -> Bool
+      checkAesonEncodingEquality' = checkAesonEncodingEquality
+  
+  describe ("JSON encoding of " ++ addBrackets (typeIdentifier) ++ note) $
+    prop "allows to encode values with aeson and read them back"  
+          (checkAesonEncodingEquality' )
+
+

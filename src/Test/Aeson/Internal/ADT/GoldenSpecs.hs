@@ -54,13 +54,13 @@ import           Test.QuickCheck.Arbitrary.ADT
 -- compare with golden file if it exists. Golden file encodes json format of a
 -- type. It is recommended that you put the golden files under revision control
 -- to help monitor changes.
-goldenADTSpecs :: forall a. (ToADTArbitrary a, Eq a, Show a, Arbitrary a, ToJSON a, FromJSON a) =>
+goldenADTSpecs :: forall a. (ToADTArbitrary a, Eq a, Show a, ToJSON a, FromJSON a) =>
   Settings -> Proxy a -> Spec
 goldenADTSpecs settings proxy = goldenADTSpecsWithNote settings proxy Nothing
 
 -- | same as 'goldenADTSpecs' but has the option of passing a note to the
 -- 'describe' function.
-goldenADTSpecsWithNote :: forall a. (ToADTArbitrary a, Eq a, Show a, Arbitrary a, ToJSON a, FromJSON a) =>
+goldenADTSpecsWithNote :: forall a. (ToADTArbitrary a, Eq a, Show a, ToJSON a, FromJSON a) =>
   Settings -> Proxy a -> Maybe String -> Spec
 goldenADTSpecsWithNote settings Proxy mNote = do
   (moduleName,(typeName,constructors)) <- runIO $ fmap (adtModuleName &&& adtTypeName &&& adtCAPs) <$> generate $ toADTArbitrary (Proxy :: Proxy a)

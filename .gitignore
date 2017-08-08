@@ -21,3 +21,4 @@ cabal.project.local
 golden/
 json-tests/
 
+/TAGS
