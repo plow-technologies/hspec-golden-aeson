@@ -1,5 +1,10 @@
 # Revision history for hspec-golden-aeson
 
+## 0.2.1.0  -- 2017-08-08
+
+* Added the ability to run an automated test withought needing a Show, Eq, or Typeable instance.
+* Cleaned up error messages, mostly involving redundant types
+
 ## 0.2.0.3  -- 2016-09-08
 
 * Tests were breaking because Test.Types.MismatchedToAndFromSerialization was

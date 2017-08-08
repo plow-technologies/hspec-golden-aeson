@@ -9,6 +9,7 @@ Stability   : Beta
 
 
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE RankNTypes          #-}
 
 module Test.Aeson.Internal.Utils where
 
@@ -54,9 +55,32 @@ shouldBeIdentity :: (Eq a, Show a, Arbitrary a) =>
 shouldBeIdentity Proxy function =
   property $ \ (a :: a) -> function a `shouldReturn` a
 
+-- | This function will compare one JSON encoding to a subsequent JSON encoding, thus eliminating the need for an Eq instance
+checkAesonEncodingEquality :: forall a . (ToJSON a, FromJSON a) => JsonShow a -> Bool
+checkAesonEncodingEquality (JsonShow a) =  
+  let byteStrA = encode a
+      decodedVal =  (eitherDecode byteStrA) :: Either String a
+      eitherByteStrB = encode <$> decodedVal  
+  in (Right byteStrA) == eitherByteStrB
+
 -- | run decode in IO, if it returns Left then throw an error.
 aesonDecodeIO :: FromJSON a => ByteString -> IO a
 aesonDecodeIO bs = case eitherDecode bs of
   Right a -> return a
   Left msg -> throwIO $ ErrorCall
     ("aeson couldn't parse value: " ++ msg)
+
+newtype JsonShow a = JsonShow a 
+
+
+instance ToJSON a => Show (JsonShow a ) where 
+    show (JsonShow v) = show . encode $ v 
+
+instance ToJSON a => ToJSON (JsonShow a) where
+    toJSON (JsonShow a) = toJSON a
+
+instance FromJSON a => FromJSON (JsonShow a) where
+     parseJSON v = JsonShow <$> (parseJSON v)
+
+instance Arbitrary a => Arbitrary (JsonShow a) where
+    arbitrary = JsonShow <$> arbitrary 

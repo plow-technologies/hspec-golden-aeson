@@ -161,7 +161,7 @@ mkRandomSamples sampleSize Proxy rSeed = RandomSamples rSeed <$> generate gen
 
 newtype TopDir     = TopDir {unTopDir :: FilePath}
 newtype ModuleName = ModuleName {unModuleName :: FilePath}
-newtype TypeName   = TypeName {unTypeName :: FilePath}      
+newtype TypeName   = TypeName {unTypeName :: FilePath}
 
 
 data TypeNameInfo a = TypeNameInfo {
@@ -181,7 +181,7 @@ data TypeNameInfo a = TypeNameInfo {
 fromTypeable :: forall a . Arbitrary a => Typeable a => Settings -> Proxy a -> IO (TypeNameInfo a)
 fromTypeable (Settings {useModuleNameAsSubDirectory
                        ,goldenDirectoryOption}) proxy = do
-     maybeModuleName <- maybeModuleNameIO 
+     maybeModuleName <- maybeModuleNameIO
      return $ TypeNameInfo (TopDir         topDir )
                            (ModuleName <$> maybeModuleName )
                            (TypeName typeName)
@@ -191,7 +191,7 @@ fromTypeable (Settings {useModuleNameAsSubDirectory
                          then do
                            arbA <-  generate (arbitrary :: Gen a)
                            return $ Just $ tyConModule . typeRepTyCon . typeOf $ arbA
-                         else return Nothing    
+                         else return Nothing
 
    topDir = case goldenDirectoryOption of
      GoldenDirectory -> "golden"

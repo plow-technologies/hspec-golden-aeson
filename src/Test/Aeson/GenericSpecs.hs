@@ -55,14 +55,14 @@ import           Test.QuickCheck.Arbitrary.ADT
 -- sampleSize is used only when creating the golden file. When it is
 -- compared, the sampleSize is derived from the file.
 roundtripAndGoldenSpecs :: forall a.
-  (Arbitrary a, Eq a, Show a, ToJSON a, FromJSON a, Typeable a)
+  (Arbitrary a, ToJSON a, FromJSON a, Typeable a)
   => Proxy a -> Spec
 roundtripAndGoldenSpecs proxy =
   roundtripAndGoldenSpecsWithSettings defaultSettings proxy
 
 -- | 'roundtripAndGoldenSpecs' with custom settings.
 roundtripAndGoldenSpecsWithSettings :: forall a.
-  (Arbitrary a, Eq a, Show a, ToJSON a, FromJSON a, Typeable a)
+  (Arbitrary a, ToJSON a, FromJSON a, Typeable a)
   => Settings -> Proxy a -> Spec
 roundtripAndGoldenSpecsWithSettings settings proxy = do
   roundtripSpecs proxy
@@ -72,14 +72,14 @@ roundtripAndGoldenSpecsWithSettings settings proxy = do
 -- sampleSize is used only when creating the golden files. When they are
 -- compared, the sampleSize is derived from the file.
 roundtripAndGoldenADTSpecs :: forall a.
-  (Arbitrary a, ToADTArbitrary a, Eq a, Show a, ToJSON a, FromJSON a)
+  (ToADTArbitrary a, Eq a, Show a, ToJSON a, FromJSON a)
   => Proxy a -> Spec
 roundtripAndGoldenADTSpecs proxy =
   roundtripAndGoldenADTSpecsWithSettings defaultSettings proxy
 
 -- | 'roundtripAndGoldenADTSpecs' with custom settings.
 roundtripAndGoldenADTSpecsWithSettings :: forall a.
-  (Arbitrary a, ToADTArbitrary a, Eq a, Show a, ToJSON a, FromJSON a)
+  (ToADTArbitrary a, Eq a, Show a, ToJSON a, FromJSON a)
   => Settings -> Proxy a -> Spec
 roundtripAndGoldenADTSpecsWithSettings settings proxy = do
   roundtripADTSpecs proxy
