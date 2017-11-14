@@ -72,7 +72,6 @@ aesonDecodeIO bs = case eitherDecode bs of
 
 newtype JsonShow a = JsonShow a 
 
-
 instance ToJSON a => Show (JsonShow a ) where 
     show (JsonShow v) = show . encode $ v 
 

@@ -41,6 +41,10 @@ import           Test.Hspec
 import           Test.QuickCheck
 import           Test.QuickCheck.Arbitrary.ADT
 
+
+import           Data.Monoid ((<>))
+
+
 -- | Tests to ensure that JSON encoding has not unintentionally changed. This
 -- could be caused by the following:
 --
@@ -160,3 +164,20 @@ mkRandomADTSamplesForConstructor sampleSize Proxy conName rSeed = do
   where
     correctedSampleSize = if sampleSize <= 0 then 1 else sampleSize
     gen = setSeed rSeed $ replicateM correctedSampleSize (toADTArbitrary (Proxy :: Proxy a))
+
+-- | Make a Golden File for the Proxy of a type if the file does not exist.
+mkGoldenFileForType :: forall a. (ToJSON a, ToADTArbitrary a) => Int -> Proxy a -> FilePath -> IO ()
+mkGoldenFileForType sampleSize Proxy goldenPath = do
+  (typeName, constructors) <- fmap (adtTypeName &&& adtCAPs) <$> generate $ toADTArbitrary (Proxy :: Proxy a)
+  mapM_
+    (\constructor -> do
+        let goldenFile = goldenPath <> "/" <> typeName <> ".json"
+        exists <- doesFileExist goldenFile
+        if exists
+          then pure ()
+          else do
+            createDirectoryIfMissing True (takeDirectory goldenFile)
+            rSeed <- randomIO :: IO Int
+            rSamples <- mkRandomADTSamplesForConstructor sampleSize (Proxy :: Proxy a) (capConstructor constructor) rSeed
+            writeFile goldenFile $ encodePretty rSamples
+    ) constructors
