@@ -33,7 +33,6 @@ import           System.FilePath
 import           System.Random
 
 import           Test.Aeson.Internal.RandomSamples
-import           Test.Aeson.Internal.Types
 import           Test.Aeson.Internal.Utils
 import           Test.Hspec
 import           Test.QuickCheck

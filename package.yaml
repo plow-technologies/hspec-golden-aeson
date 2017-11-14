@@ -19,7 +19,6 @@ library:
   - Test.Aeson.Internal.GoldenSpecs
   - Test.Aeson.Internal.RoundtripSpecs
   - Test.Aeson.Internal.RandomSamples
-  - Test.Aeson.Internal.Types  
   - Test.Aeson.Internal.Utils
   dependencies:
   - base >= 4.7 && < 5
