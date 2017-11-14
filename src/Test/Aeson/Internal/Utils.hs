@@ -1,13 +1,13 @@
 {-|
 Module      : Test.Aeson.Internal.Utils
-Description : Utility types, functions and values
+Description : Internal types, functions and values
 Copyright   : (c) Plow Technologies, 2016
 License     : BSD3
 Maintainer  : mchaver@gmail.com
 Stability   : Beta
 -}
 
-
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RankNTypes          #-}
 
@@ -18,6 +18,7 @@ import           Control.Exception
 import           Data.Aeson
 import           Data.ByteString.Lazy (ByteString)
 import           Data.Proxy
+import           Data.Typeable
 
 import           Prelude
 
@@ -25,20 +26,23 @@ import           Test.Hspec
 import           Test.QuickCheck
 
 
-data Settings = Settings {
-  goldenDirectoryOption       :: GoldenDirectoryOption -- ^ use a custom directory name or use the generic "golden" directory.
+data ComparisonFile
+  = FaultyFile
+  | OverwriteGoldenFile
 
-, useModuleNameAsSubDirectory :: Bool -- ^ If true, use the module name in the file path, otherwise ignore it.
-
-, sampleSize                  :: Int -- ^ How many instances of each type you want. If you use ADT versions than it will use the sample size for each constructor.
-}
+data Settings = Settings 
+  { goldenDirectoryOption :: GoldenDirectoryOption -- ^ use a custom directory name or use the generic "golden" directory.
+  , useModuleNameAsSubDirectory :: Bool -- ^ If true, use the module name in the file path, otherwise ignore it.
+  , sampleSize :: Int -- ^ How many instances of each type you want. If you use ADT versions than it will use the sample size for each constructor.
+  , comparisonFile :: ComparisonFile
+  }
 
 -- | A custom directory name or a preselected directory name.
 data GoldenDirectoryOption = CustomDirectoryName String | GoldenDirectory
 
 -- | The default settings for general use cases.
 defaultSettings :: Settings
-defaultSettings = Settings GoldenDirectory False 5
+defaultSettings = Settings GoldenDirectory False 5 FaultyFile
 
 -- | put brackets around a String.
 addBrackets :: String -> String
@@ -70,10 +74,10 @@ aesonDecodeIO bs = case eitherDecode bs of
   Left msg -> throwIO $ ErrorCall
     ("aeson couldn't parse value: " ++ msg)
 
+-- | Used to eliminate the need for an Eq instance
 newtype JsonShow a = JsonShow a 
 
-
-instance ToJSON a => Show (JsonShow a ) where 
+instance ToJSON a => Show (JsonShow a) where 
     show (JsonShow v) = show . encode $ v 
 
 instance ToJSON a => ToJSON (JsonShow a) where
@@ -84,3 +88,50 @@ instance FromJSON a => FromJSON (JsonShow a) where
 
 instance Arbitrary a => Arbitrary (JsonShow a) where
     arbitrary = JsonShow <$> arbitrary 
+
+--------------------------------------------------
+-- Handle creating names
+--------------------------------------------------
+
+newtype TopDir =
+  TopDir
+    { unTopDir :: FilePath
+    } deriving (Eq,Read,Show)
+
+newtype ModuleName =
+  ModuleName
+    { unModuleName :: FilePath
+    } deriving (Eq,Read,Show)
+
+newtype TypeName =
+  TypeName
+    { unTypeName :: FilePath
+    } deriving (Eq,Read,Show)
+
+data TypeNameInfo a =
+  TypeNameInfo
+    { typeNameTopDir :: TopDir
+    , typeNameModuleName :: Maybe ModuleName
+    , typeNameTypeName   :: TypeName
+    } deriving (Eq,Read,Show)
+
+mkTypeNameInfo :: forall a . Arbitrary a => Typeable a => Settings -> Proxy a -> IO (TypeNameInfo a)
+mkTypeNameInfo (Settings { useModuleNameAsSubDirectory
+                       , goldenDirectoryOption}) proxy = do
+  maybeModuleName <- maybeModuleNameIO
+  return $ TypeNameInfo (TopDir         topDir )
+                        (ModuleName <$> maybeModuleName )
+                        (TypeName typeName)
+  where
+   typeName = show (typeRep proxy)
+   maybeModuleNameIO =
+     if useModuleNameAsSubDirectory
+     then do
+       arbA <- generate (arbitrary :: Gen a)
+       return $ Just $ tyConModule . typeRepTyCon . typeOf $ arbA
+     else return Nothing
+
+   topDir =
+     case goldenDirectoryOption of
+       GoldenDirectory -> "golden"
+       CustomDirectoryName d -> d

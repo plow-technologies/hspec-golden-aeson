@@ -16,33 +16,37 @@ This package provides tools for testing Aeson serialization.
 
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Test.Aeson.GenericSpecs (
-  -- * Arbitrary testing
-  goldenSpecs
-, roundtripSpecs
-, roundtripAndGoldenSpecs
+module Test.Aeson.GenericSpecs
+  (
+    -- * Arbitrary testing
+    goldenSpecs
+  , roundtripSpecs
+  , roundtripAndGoldenSpecs
 
   -- * ToADTArbitrary testing
-, goldenADTSpecs
-, roundtripADTSpecs
-, roundtripAndGoldenADTSpecs
-, roundtripAndGoldenADTSpecsWithSettings
+  , goldenADTSpecs
+  , roundtripADTSpecs
+  , roundtripAndGoldenADTSpecs
+  , roundtripAndGoldenADTSpecsWithSettings
 
+  -- * Make Files
+  , mkGoldenFileForType
+  
   -- * Util
-, shouldBeIdentity
-, GoldenDirectoryOption(..)
-, Settings(..)
-, defaultSettings
+  , shouldBeIdentity
+  , GoldenDirectoryOption(..)
+  , Settings(..)
+  , defaultSettings
 
   -- * re-exports
-, Proxy(..)
-) where
+  , Proxy(..)
+  ) where
 
 import           Data.Aeson                             (FromJSON, ToJSON)
 import           Data.Proxy
 import           Data.Typeable
 
-import           Test.Aeson.Internal.ADT.GoldenSpecs    (goldenADTSpecs)
+import           Test.Aeson.Internal.ADT.GoldenSpecs    (goldenADTSpecs, mkGoldenFileForType)
 import           Test.Aeson.Internal.ADT.RoundtripSpecs (roundtripADTSpecs)
 import           Test.Aeson.Internal.GoldenSpecs        (goldenSpecs)
 import           Test.Aeson.Internal.RoundtripSpecs     (roundtripSpecs)

@@ -1,5 +1,11 @@
 # Revision history for hspec-golden-aeson
 
+## 0.2.2.0  -- 2017-11-14
+
+* Add mkGoldenFileForType.
+* Rename internal function fromTypeable to mkTypeNameInfo.
+* Move TopDir, ModuleName, TypeName, TypeNameInfo and mkTypeNameInfo into Test.Aeson.Internal.Util.
+
 ## 0.2.1.0  -- 2017-08-08
 
 * Added the ability to run an automated test withought needing a Show, Eq, or Typeable instance.

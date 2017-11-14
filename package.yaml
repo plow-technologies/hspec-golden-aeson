@@ -1,0 +1,59 @@
+name: hspec-golden-aeson
+version: 0.3.0.0
+synopsis: Use tests to monitor changes in Aeson serialization
+description: Use tests to monitor changes in Aeson serialization
+category: Testing
+author: James M.C. Haver II
+maintainer: mchaver@gmail.com
+copyright: 2016 Plow Technologies
+license: BSD3
+homepage: https://github.com/plow-technologies/hspec-golden-aeson#readme
+github: plow-technologies/hspec-golden-aeson
+
+library:
+  source-dirs: src
+  exposed-modules: 
+  - Test.Aeson.GenericSpecs
+  - Test.Aeson.Internal.ADT.GoldenSpecs
+  - Test.Aeson.Internal.ADT.RoundtripSpecs
+  - Test.Aeson.Internal.GoldenSpecs
+  - Test.Aeson.Internal.RoundtripSpecs
+  - Test.Aeson.Internal.RandomSamples
+  - Test.Aeson.Internal.Utils
+  dependencies:
+  - base >= 4.7 && < 5
+  - aeson
+  - aeson-pretty
+  - bytestring
+  - directory
+  - filepath
+  - hspec
+  - random
+  - quickcheck-arbitrary-adt >= 0.2.0.0
+  - QuickCheck
+  - transformers
+  ghc-options:
+  - -Wall
+  - -Werror
+
+tests:
+  test:
+    main: Spec.hs
+    source-dirs: test
+    dependencies:
+    - base
+    - aeson
+    - directory
+    - hspec
+    - hspec-core
+    - hspec-golden-aeson
+    - silently
+    - quickcheck-arbitrary-adt
+    - QuickCheck
+    - transformers
+    ghc-options:
+    - -Wall
+    - -Werror
+    - -fwarn-incomplete-uni-patterns
+    - -fwarn-incomplete-record-updates
+    - -fno-warn-name-shadowing

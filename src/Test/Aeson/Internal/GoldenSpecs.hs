@@ -1,4 +1,4 @@
-{-# LANGUAGE NamedFieldPuns #-}
+
 {-|
 Module      : Test.Aeson.Internal.GoldenSpecs
 Description : Golden tests for Arbitrary
@@ -10,6 +10,7 @@ Stability   : Beta
 Internal module, use at your own risk.
 -}
 
+{-# LANGUAGE NamedFieldPuns      #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -36,10 +37,6 @@ import           Test.Aeson.Internal.Utils
 import           Test.Hspec
 import           Test.QuickCheck
 
-
-
-
-
 -- | Tests to ensure that JSON encoding has not unintentionally changed. This
 -- could be caused by the following:
 --
@@ -62,7 +59,7 @@ goldenSpecs settings proxy = goldenSpecsWithNote settings proxy Nothing
 goldenSpecsWithNote :: forall a. (Typeable a, Arbitrary a, ToJSON a, FromJSON a) =>
   Settings -> Proxy a -> Maybe String -> Spec
 goldenSpecsWithNote settings@Settings{..} proxy mNote = do
-  typeNameInfo    <- runIO $ fromTypeable settings proxy
+  typeNameInfo    <- runIO $ mkTypeNameInfo settings proxy
   goldenSpecsWithNotePlain settings typeNameInfo mNote
 
 -- | same as 'goldenSpecsWithNote' but does not require a Typeable, Eq or Show instance.
@@ -77,7 +74,7 @@ goldenSpecsWithNotePlain settings@Settings{..} typeNameInfo@(TypeNameInfo{typeNa
     it ("produces the same JSON as is found in " ++ goldenFile) $ do
       exists <- doesFileExist goldenFile
       if exists
-        then compareWithGolden typeNameInfo proxy goldenFile
+        then compareWithGolden typeNameInfo proxy goldenFile comparisonFile
         else createGoldenfile settings proxy goldenFile
 
     
@@ -85,8 +82,8 @@ goldenSpecsWithNotePlain settings@Settings{..} typeNameInfo@(TypeNameInfo{typeNa
 -- the golden file and compare the with the JSON in the golden file.
 compareWithGolden :: forall a .
   ( Arbitrary a, ToJSON a, FromJSON a) =>
-  TypeNameInfo a ->  Proxy a  -> FilePath -> IO ()
-compareWithGolden typeNameInfo proxy goldenFile = do
+  TypeNameInfo a ->  Proxy a  -> FilePath -> ComparisonFile ->IO ()
+compareWithGolden typeNameInfo proxy goldenFile comparisonFile = do
   goldenSeed <- readSeed =<< readFile goldenFile
   sampleSize <- readSampleSize =<< readFile goldenFile
   newSamples <- mkRandomSamples sampleSize proxy goldenSeed
@@ -99,12 +96,15 @@ compareWithGolden typeNameInfo proxy goldenFile = do
   where
     whenFails :: forall b c . IO c -> IO b -> IO b
     whenFails = flip onException
-    faultyFile = mkFaultyFile typeNameInfo 
+    filePath =
+      case comparisonFile of
+        FaultyFile -> mkFaultyFile typeNameInfo
+        OverwriteGoldenFile -> goldenFile
     writeComparisonFile newSamples = do
-      writeFile faultyFile (encodePretty newSamples)
+      writeFile filePath (encodePretty newSamples)
       putStrLn $
         "\n" ++
-        "INFO: Written the current encodings into " ++ faultyFile ++ "."
+        "INFO: Written the current encodings into " ++ filePath ++ "."
 
 -- | The golden files do not exist. Create it.
 createGoldenfile :: forall a . (Arbitrary a, ToJSON a) =>
@@ -149,50 +149,3 @@ mkRandomSamples sampleSize Proxy rSeed = RandomSamples rSeed <$> generate gen
     correctedSampleSize = if sampleSize <= 0 then 1 else sampleSize
     gen :: Gen [a]
     gen = setSeed rSeed $ replicateM correctedSampleSize (arbitrary :: Gen a)
-
-
-
-
-
-
---------------------------------------------------
--- Handle creating names
---------------------------------------------------
-
-newtype TopDir     = TopDir {unTopDir :: FilePath}
-newtype ModuleName = ModuleName {unModuleName :: FilePath}
-newtype TypeName   = TypeName {unTypeName :: FilePath}
-
-
-data TypeNameInfo a = TypeNameInfo {
-                        typeNameTopDir     :: TopDir,
-                        typeNameModuleName :: Maybe ModuleName,
-                        typeNameTypeName   :: TypeName
-                        }
-
-
-{-
--    Nothing         -> topDir </> show (typeRep proxy) <.> "json"
--    Just moduleName -> topDir </> moduleName </> show (typeRep proxy) <.> "json"
-
--}
-
-
-fromTypeable :: forall a . Arbitrary a => Typeable a => Settings -> Proxy a -> IO (TypeNameInfo a)
-fromTypeable (Settings {useModuleNameAsSubDirectory
-                       ,goldenDirectoryOption}) proxy = do
-     maybeModuleName <- maybeModuleNameIO
-     return $ TypeNameInfo (TopDir         topDir )
-                           (ModuleName <$> maybeModuleName )
-                           (TypeName typeName)
-  where
-   typeName        = show (typeRep proxy)
-   maybeModuleNameIO = if useModuleNameAsSubDirectory
-                         then do
-                           arbA <-  generate (arbitrary :: Gen a)
-                           return $ Just $ tyConModule . typeRepTyCon . typeOf $ arbA
-                         else return Nothing
-
-   topDir = case goldenDirectoryOption of
-     GoldenDirectory -> "golden"
-     CustomDirectoryName d -> d
