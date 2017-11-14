@@ -1,4 +1,4 @@
-{-# LANGUAGE NamedFieldPuns #-}
+
 {-|
 Module      : Test.Aeson.Internal.GoldenSpecs
 Description : Golden tests for Arbitrary
@@ -10,6 +10,7 @@ Stability   : Beta
 Internal module, use at your own risk.
 -}
 
+{-# LANGUAGE NamedFieldPuns      #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -32,13 +33,10 @@ import           System.FilePath
 import           System.Random
 
 import           Test.Aeson.Internal.RandomSamples
+import           Test.Aeson.Internal.Types
 import           Test.Aeson.Internal.Utils
 import           Test.Hspec
 import           Test.QuickCheck
-
-
-
-
 
 -- | Tests to ensure that JSON encoding has not unintentionally changed. This
 -- could be caused by the following:
@@ -62,7 +60,7 @@ goldenSpecs settings proxy = goldenSpecsWithNote settings proxy Nothing
 goldenSpecsWithNote :: forall a. (Typeable a, Arbitrary a, ToJSON a, FromJSON a) =>
   Settings -> Proxy a -> Maybe String -> Spec
 goldenSpecsWithNote settings@Settings{..} proxy mNote = do
-  typeNameInfo    <- runIO $ fromTypeable settings proxy
+  typeNameInfo    <- runIO $ mkTypeNameInfo settings proxy
   goldenSpecsWithNotePlain settings typeNameInfo mNote
 
 -- | same as 'goldenSpecsWithNote' but does not require a Typeable, Eq or Show instance.
@@ -149,50 +147,3 @@ mkRandomSamples sampleSize Proxy rSeed = RandomSamples rSeed <$> generate gen
     correctedSampleSize = if sampleSize <= 0 then 1 else sampleSize
     gen :: Gen [a]
     gen = setSeed rSeed $ replicateM correctedSampleSize (arbitrary :: Gen a)
-
-
-
-
-
-
---------------------------------------------------
--- Handle creating names
---------------------------------------------------
-
-newtype TopDir     = TopDir {unTopDir :: FilePath}
-newtype ModuleName = ModuleName {unModuleName :: FilePath}
-newtype TypeName   = TypeName {unTypeName :: FilePath}
-
-
-data TypeNameInfo a = TypeNameInfo {
-                        typeNameTopDir     :: TopDir,
-                        typeNameModuleName :: Maybe ModuleName,
-                        typeNameTypeName   :: TypeName
-                        }
-
-
-{-
--    Nothing         -> topDir </> show (typeRep proxy) <.> "json"
--    Just moduleName -> topDir </> moduleName </> show (typeRep proxy) <.> "json"
-
--}
-
-
-fromTypeable :: forall a . Arbitrary a => Typeable a => Settings -> Proxy a -> IO (TypeNameInfo a)
-fromTypeable (Settings {useModuleNameAsSubDirectory
-                       ,goldenDirectoryOption}) proxy = do
-     maybeModuleName <- maybeModuleNameIO
-     return $ TypeNameInfo (TopDir         topDir )
-                           (ModuleName <$> maybeModuleName )
-                           (TypeName typeName)
-  where
-   typeName        = show (typeRep proxy)
-   maybeModuleNameIO = if useModuleNameAsSubDirectory
-                         then do
-                           arbA <-  generate (arbitrary :: Gen a)
-                           return $ Just $ tyConModule . typeRepTyCon . typeOf $ arbA
-                         else return Nothing
-
-   topDir = case goldenDirectoryOption of
-     GoldenDirectory -> "golden"
-     CustomDirectoryName d -> d
