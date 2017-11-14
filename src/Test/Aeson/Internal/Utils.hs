@@ -26,20 +26,23 @@ import           Test.Hspec
 import           Test.QuickCheck
 
 
-data Settings = Settings {
-  goldenDirectoryOption       :: GoldenDirectoryOption -- ^ use a custom directory name or use the generic "golden" directory.
+data ComparisonFile
+  = FaultyFile
+  | OverwriteGoldenFile
 
-, useModuleNameAsSubDirectory :: Bool -- ^ If true, use the module name in the file path, otherwise ignore it.
-
-, sampleSize                  :: Int -- ^ How many instances of each type you want. If you use ADT versions than it will use the sample size for each constructor.
-}
+data Settings = Settings 
+  { goldenDirectoryOption :: GoldenDirectoryOption -- ^ use a custom directory name or use the generic "golden" directory.
+  , useModuleNameAsSubDirectory :: Bool -- ^ If true, use the module name in the file path, otherwise ignore it.
+  , sampleSize :: Int -- ^ How many instances of each type you want. If you use ADT versions than it will use the sample size for each constructor.
+  , comparisonFile :: ComparisonFile
+  }
 
 -- | A custom directory name or a preselected directory name.
 data GoldenDirectoryOption = CustomDirectoryName String | GoldenDirectory
 
 -- | The default settings for general use cases.
 defaultSettings :: Settings
-defaultSettings = Settings GoldenDirectory False 5
+defaultSettings = Settings GoldenDirectory False 5 FaultyFile
 
 -- | put brackets around a String.
 addBrackets :: String -> String

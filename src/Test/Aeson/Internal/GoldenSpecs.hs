@@ -74,7 +74,7 @@ goldenSpecsWithNotePlain settings@Settings{..} typeNameInfo@(TypeNameInfo{typeNa
     it ("produces the same JSON as is found in " ++ goldenFile) $ do
       exists <- doesFileExist goldenFile
       if exists
-        then compareWithGolden typeNameInfo proxy goldenFile
+        then compareWithGolden typeNameInfo proxy goldenFile comparisonFile
         else createGoldenfile settings proxy goldenFile
 
     
@@ -82,8 +82,8 @@ goldenSpecsWithNotePlain settings@Settings{..} typeNameInfo@(TypeNameInfo{typeNa
 -- the golden file and compare the with the JSON in the golden file.
 compareWithGolden :: forall a .
   ( Arbitrary a, ToJSON a, FromJSON a) =>
-  TypeNameInfo a ->  Proxy a  -> FilePath -> IO ()
-compareWithGolden typeNameInfo proxy goldenFile = do
+  TypeNameInfo a ->  Proxy a  -> FilePath -> ComparisonFile ->IO ()
+compareWithGolden typeNameInfo proxy goldenFile comparisonFile = do
   goldenSeed <- readSeed =<< readFile goldenFile
   sampleSize <- readSampleSize =<< readFile goldenFile
   newSamples <- mkRandomSamples sampleSize proxy goldenSeed
@@ -96,12 +96,15 @@ compareWithGolden typeNameInfo proxy goldenFile = do
   where
     whenFails :: forall b c . IO c -> IO b -> IO b
     whenFails = flip onException
-    faultyFile = mkFaultyFile typeNameInfo 
+    filePath =
+      case comparisonFile of
+        FaultyFile -> mkFaultyFile typeNameInfo
+        OverwriteGoldenFile -> goldenFile
     writeComparisonFile newSamples = do
-      writeFile faultyFile (encodePretty newSamples)
+      writeFile filePath (encodePretty newSamples)
       putStrLn $
         "\n" ++
-        "INFO: Written the current encodings into " ++ faultyFile ++ "."
+        "INFO: Written the current encodings into " ++ filePath ++ "."
 
 -- | The golden files do not exist. Create it.
 createGoldenfile :: forall a . (Arbitrary a, ToJSON a) =>
