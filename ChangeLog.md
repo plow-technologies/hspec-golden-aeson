@@ -1,6 +1,10 @@
 # Revision history for hspec-golden-aeson
 
-## 0.2.2.0  -- 2017-11-14
+## 0.3.1.0 -- 2017-12-02
+
+* Expose 'roundtripAndGoldenSpecsWithSettings'.
+
+## 0.3.0.0  -- 2017-11-14
 
 * Add mkGoldenFileForType.
 * Rename internal function fromTypeable to mkTypeNameInfo.

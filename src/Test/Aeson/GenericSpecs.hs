@@ -26,6 +26,7 @@ module Test.Aeson.GenericSpecs
   -- * ToADTArbitrary testing
   , goldenADTSpecs
   , roundtripADTSpecs
+  , roundtripAndGoldenSpecsWithSettings
   , roundtripAndGoldenADTSpecs
   , roundtripAndGoldenADTSpecsWithSettings
 
