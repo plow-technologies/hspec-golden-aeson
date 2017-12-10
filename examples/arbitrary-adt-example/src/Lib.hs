@@ -5,9 +5,16 @@ module Lib
     , OnOrOff (..)
     ) where
 
-import Data.Aeson (ToJSON)
+-- base
 import GHC.Generics (Generic)
+
+-- aeson
+import Data.Aeson (ToJSON)
+
+-- QuickCheck
 import Test.QuickCheck (Arbitrary (..), oneof)
+
+-- quickcheck-arbitrary-adt
 import Test.QuickCheck.Arbitrary.ADT (ToADTArbitrary)
 
 data Person =
