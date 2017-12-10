@@ -1,5 +1,9 @@
 # Revision history for hspec-golden-aeson
 
+## 0.4.0.0 -- 2017-12-10
+
+* Fix behavior for 'mkGoldenFileForType'. Intention is to create a file in a dir for each constructor, but it was only creating a file for one of the constructors of a type.
+
 ## 0.3.1.0 -- 2017-12-02
 
 * Expose 'roundtripAndGoldenSpecsWithSettings'.

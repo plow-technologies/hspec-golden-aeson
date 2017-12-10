@@ -1,5 +1,5 @@
 name: hspec-golden-aeson
-version: 0.3.1.0
+version: 0.4.0.0
 synopsis: Use tests to monitor changes in Aeson serialization
 description: Use tests to monitor changes in Aeson serialization
 category: Testing
@@ -34,7 +34,7 @@ library:
   - transformers
   ghc-options:
   - -Wall
-  - -Werror
+#  - -Werror
 
 tests:
   test:
@@ -53,7 +53,7 @@ tests:
     - transformers
     ghc-options:
     - -Wall
-    - -Werror
+#    - -Werror
     - -fwarn-incomplete-uni-patterns
     - -fwarn-incomplete-record-updates
     - -fno-warn-name-shadowing

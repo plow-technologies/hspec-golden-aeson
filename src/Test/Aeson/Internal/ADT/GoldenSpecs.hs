@@ -41,10 +41,6 @@ import           Test.Hspec
 import           Test.QuickCheck
 import           Test.QuickCheck.Arbitrary.ADT
 
-
-import           Data.Monoid ((<>))
-
-
 -- | Tests to ensure that JSON encoding has not unintentionally changed. This
 -- could be caused by the following:
 --
@@ -171,7 +167,7 @@ mkGoldenFileForType sampleSize Proxy goldenPath = do
   (typeName, constructors) <- fmap (adtTypeName &&& adtCAPs) <$> generate $ toADTArbitrary (Proxy :: Proxy a)
   mapM_
     (\constructor -> do
-        let goldenFile = goldenPath <> "/" <> typeName <> ".json"
+        let goldenFile = goldenPath </> typeName </> capConstructor constructor <.> ".json"
         exists <- doesFileExist goldenFile
         if exists
           then pure ()
