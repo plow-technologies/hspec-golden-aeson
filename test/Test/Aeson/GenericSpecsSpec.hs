@@ -171,5 +171,30 @@ spec = do
       (s1,_) <- hspecSilently $ goldenADTSpecs defaultSettings (Proxy :: Proxy TAS.Person)
       summaryFailures s1 `shouldBe` 1
 
+  describe "mkGoldenFileForType" $ do
+    it "create a single file in a dir for a Product type" $ do
+      -- clean up previously existing golden folder
+      bg <- doesDirectoryExist "golden"
+      if bg
+        then removeDirectoryRecursive "golden"
+        else pure ()
+
+      mkGoldenFileForType 10 (Proxy :: Proxy T.Person) "golden"
+      doesFileExist "golden/Person/Person.json"    `shouldReturn` True
+
+    it "create a file for each constructor in a dir for a Sum type" $ do
+      -- clean up previously existing golden folder
+      bg <- doesDirectoryExist "golden"
+      if bg
+        then removeDirectoryRecursive "golden"
+        else pure ()
+
+      mkGoldenFileForType 10 (Proxy :: Proxy T.SumType) "golden"
+      doesFileExist "golden/SumType/SumType1.json" `shouldReturn` True
+      doesFileExist "golden/SumType/SumType2.json" `shouldReturn` True
+      doesFileExist "golden/SumType/SumType3.json" `shouldReturn` True
+
+
+
 main :: IO ()
 main = hspec spec

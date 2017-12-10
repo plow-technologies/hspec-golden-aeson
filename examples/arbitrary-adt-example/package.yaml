@@ -1,0 +1,35 @@
+name:                arbitrary-adt-example
+version:             0.1.0.0
+github:              plow-technologies/hspec-golden-aeson
+license:             BSD3
+author:              James M.C. Haver II
+maintainer:          mchaver@gmail.com
+copyright:           BSD3
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+synopsis:            hspec-golden-aeson example
+description:         Please see the README on Github at <https://github.com/plow-technologies/hspec-golden-aeson#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- aeson
+- QuickCheck
+- quickcheck-arbitrary-adt
+- hspec-golden-aeson
+
+
+library:
+  source-dirs: src
+
+tests:
+  test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - arbitrary-adt-example
