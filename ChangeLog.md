@@ -1,5 +1,9 @@
 # Revision history for hspec-golden-aeson
 
+## 0.5.0.0 -- 2018-01-02
+
+* Add 'Arbitrary' requirement for 'roundtripADTSpecs', 'roundtripAndGoldenADTSpecs' and 'roundtripAndGoldenADTSpecsWithSettings' because 'Arbitrary' was a redundant constrain for 'ToADTArbitrary' in quickcheck-arbitrary-adt.
+
 ## 0.4.0.0 -- 2017-12-10
 
 * Fix behavior for 'mkGoldenFileForType'. Intention is to create a file in a dir for each constructor, but it was only creating a file for one of the constructors of a type.

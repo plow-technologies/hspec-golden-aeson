@@ -77,14 +77,14 @@ roundtripAndGoldenSpecsWithSettings settings proxy = do
 -- sampleSize is used only when creating the golden files. When they are
 -- compared, the sampleSize is derived from the file.
 roundtripAndGoldenADTSpecs :: forall a.
-  (ToADTArbitrary a, Eq a, Show a, ToJSON a, FromJSON a)
+  (Arbitrary a, ToADTArbitrary a, Eq a, Show a, ToJSON a, FromJSON a)
   => Proxy a -> Spec
 roundtripAndGoldenADTSpecs proxy =
   roundtripAndGoldenADTSpecsWithSettings defaultSettings proxy
 
 -- | 'roundtripAndGoldenADTSpecs' with custom settings.
 roundtripAndGoldenADTSpecsWithSettings :: forall a.
-  (ToADTArbitrary a, Eq a, Show a, ToJSON a, FromJSON a)
+  (Arbitrary a, ToADTArbitrary a, Eq a, Show a, ToJSON a, FromJSON a)
   => Settings -> Proxy a -> Spec
 roundtripAndGoldenADTSpecsWithSettings settings proxy = do
   roundtripADTSpecs proxy

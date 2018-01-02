@@ -37,7 +37,7 @@ import Control.Monad
 -- - make sure that the result is the same as the value it started with
 --   using 'Eq'.
 roundtripADTSpecs :: forall a.
-  (ToADTArbitrary a, Eq a, Show a, ToJSON a, FromJSON a)
+  (Arbitrary a, ToADTArbitrary a, Eq a, Show a, ToJSON a, FromJSON a)
   => Proxy a
   -> Spec
 roundtripADTSpecs proxy = genericAesonRoundtripADTWithNote proxy Nothing
