@@ -2,7 +2,7 @@
 
 ## 0.5.0.0 -- 2018-01-02
 
-* Add 'Arbitrary' requirement to some functions as per changes in 'quickcheck-arbitrary-adt'.
+* Add 'Arbitrary' requirement for 'roundtripADTSpecs', 'roundtripAndGoldenADTSpecs' and 'roundtripAndGoldenADTSpecsWithSettings' because 'Arbitrary' was a redundant constrain for 'ToADTArbitrary' in quickcheck-arbitrary-adt.
 
 ## 0.4.0.0 -- 2017-12-10
 

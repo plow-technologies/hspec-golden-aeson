@@ -34,7 +34,7 @@ library:
   - transformers
   ghc-options:
   - -Wall
-  - -Werror
+#  - -Werror
   - -Wredundant-constraints
 
 tests:
