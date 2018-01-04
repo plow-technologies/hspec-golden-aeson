@@ -1,5 +1,9 @@
 # Revision history for hspec-golden-aeson
 
+## 0.5.1.0 -- 2018-01-04
+
+* Remove 'Wredundant-constraints' flag.
+
 ## 0.5.0.0 -- 2018-01-02
 
 * Add 'Arbitrary' requirement for 'roundtripADTSpecs', 'roundtripAndGoldenADTSpecs' and 'roundtripAndGoldenADTSpecsWithSettings' because 'Arbitrary' was a redundant constrain for 'ToADTArbitrary' in quickcheck-arbitrary-adt.
