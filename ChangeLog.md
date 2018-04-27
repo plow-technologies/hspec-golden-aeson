@@ -1,5 +1,9 @@
 # Revision history for hspec-golden-aeson
 
+## 0.6.0.0 -- 2018-01-04
+
+* Test encoding in `roundtripAndGoldenADTSpecs' and 'roundtripAndGoldenADTSpecsWithSettings` functions. This may break current tests because only decoding was tested previously.
+
 ## 0.5.1.0 -- 2018-01-04
 
 * Remove 'Wredundant-constraints' flag.
