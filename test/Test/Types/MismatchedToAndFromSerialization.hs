@@ -14,9 +14,9 @@ data Person = Person {
 
 -- ToJSON and FromJSON use different strings, this should break.
 instance ToJSON Person where
-  toJSON (Person name age) = object [
-       "personName" .= name
-    ,  "personAge"  .= age
+  toJSON (Person name' age') = object [
+       "personName" .= name'
+    ,  "personAge"  .= age'
     ]
 
 instance FromJSON Person where
