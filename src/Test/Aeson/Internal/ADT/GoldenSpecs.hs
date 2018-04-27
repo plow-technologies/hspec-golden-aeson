@@ -96,11 +96,12 @@ compareWithGolden topDir mModuleName typeName cap goldenFile = do
   sampleSize <- readSampleSize =<< readFile goldenFile
   newSamples <- mkRandomADTSamplesForConstructor sampleSize (Proxy :: Proxy a) (capConstructor cap) goldenSeed
   whenFails (writeComparisonFile newSamples) $ do
+    goldenBytes <- readFile goldenFile
     goldenSamples :: RandomSamples a <-
-      either (throwIO . ErrorCall) return =<<
-      A.eitherDecode' <$>
-      readFile goldenFile
+      either (throwIO . ErrorCall) return $
+      A.eitherDecode' goldenBytes
     newSamples `shouldBe` goldenSamples
+    encodePretty newSamples `shouldBe` goldenBytes
   where
     whenFails :: forall b c. IO c -> IO b -> IO b
     whenFails = flip onException
