@@ -171,6 +171,50 @@ spec = do
       (s1,_) <- hspecSilently $ goldenADTSpecs defaultSettings (Proxy :: Proxy TAS.Person)
       summaryFailures s1 `shouldBe` 1
 
+    it "encoding change should fail test" $ do
+      -- clean up previously existing golden folder
+      bg <- doesDirectoryExist "golden"
+      if bg
+        then removeDirectoryRecursive "golden"
+        else return ()
+
+      -- manually create golden file which appends `.0` to all ages.
+      -- write as inline text to make test case clearer
+      let
+        goldenTweaked = "{\
+\    \"seed\": -558805430132139320,\
+\    \"samples\": [\
+\        {\
+\            \"age\": -24.0,\
+\            \"name\": \"<\147\158\\u000e\251\133]V_t\167\&2\210\148\194Q\196_\150\145\\u0017Hf&\"\
+\        },\
+\        {\
+\            \"age\": -9.0,\
+\            \"name\": \"<\\n\\u0018O\\n>\"\
+\        },\
+\        {\
+\            \"age\": -1.0,\
+\            \"name\": \"m0x\217\\u000c\\u000fg4\188\197\\u000bF\227\\u0013\\u00042F\\u001f\176%`\224Iw\\u0011\231/\204\"\
+\        },\
+\        {\
+\            \"age\": -22.0,\
+\            \"name\": \"x\221\250{\\u001bG\244\\u0012\232\\u0004)\"\
+\        },\
+\        {\
+\            \"age\": 26.0,\
+\            \"name\": \"\153\\u0005n\\u001a$q27\184=\\u0012ba\\u001b\\u0010\252]\242A.\139w\234\&0\239\\u0004\204\"\
+\        }\
+\    ]\
+\}"
+
+      createDirectoryIfMissing True "golden/Person"
+      writeFile "golden/Person/Person.json" goldenTweaked
+
+      -- Aeson can decode "10.0" as `10 :: Int` but it will encode `10 :: Int` as 10
+      -- This should cause the golden test to fail since it indicates a change in encoding
+      (s1,_) <- hspecSilently $ goldenADTSpecs defaultSettings (Proxy :: Proxy T.Person)
+      summaryFailures s1 `shouldBe` 1
+
   describe "mkGoldenFileForType" $ do
     it "create a single file in a dir for a Product type" $ do
       -- clean up previously existing golden folder
