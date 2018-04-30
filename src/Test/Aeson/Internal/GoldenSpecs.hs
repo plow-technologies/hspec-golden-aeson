@@ -88,11 +88,19 @@ compareWithGolden typeNameInfo proxy goldenFile comparisonFile = do
   sampleSize <- readSampleSize =<< readFile goldenFile
   newSamples <- mkRandomSamples sampleSize proxy goldenSeed
   whenFails (writeComparisonFile newSamples) $ do
+    goldenBytes <- readFile goldenFile
     goldenSamples :: RandomSamples a <-
-           either (throwIO . ErrorCall) return =<<
-           eitherDecode' <$>
-           readFile goldenFile
-    encode newSamples `shouldBe` encode goldenSamples
+      either (throwIO . ErrorCall) return $
+      eitherDecode' goldenBytes
+    if encode newSamples == encode goldenSamples
+      then return ()
+      else do
+        -- fallback to testing roundtrip decoding/encoding of golden file
+        putStrLn $
+          "\n" ++
+          "WARNING: Encoding new random samples do not match " ++ goldenFile ++ ".\n" ++
+          "  Testing round-trip decoding/encoding of golden file."
+        encodePretty goldenSamples `shouldBe` goldenBytes
   where
     whenFails :: forall b c . IO c -> IO b -> IO b
     whenFails = flip onException
