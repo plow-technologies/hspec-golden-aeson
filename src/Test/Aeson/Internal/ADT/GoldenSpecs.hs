@@ -103,7 +103,7 @@ compareWithGolden topDir mModuleName typeName cap goldenFile = do
     if newSamples == goldenSamples
       then
         -- random samples match; test encoding of samples (the above check only tested the decoding)
-        encodePretty newSamples `shouldBe` goldenBytes
+        encodePretty newSamples == goldenBytes `shouldBe` True
       else do
         -- do a fallback test to determine whether the mismatch is due to a random sample change only,
         -- or due to a change in encoding
@@ -111,7 +111,7 @@ compareWithGolden topDir mModuleName typeName cap goldenFile = do
           "\n" ++
           "WARNING: New random samples do not match those in " ++ goldenFile ++ ".\n" ++
           "  Testing round-trip decoding/encoding of golden file."
-        encodePretty goldenSamples `shouldBe` goldenBytes
+        encodePretty goldenSamples == goldenBytes `shouldBe` True
   where
     whenFails :: forall b c. IO c -> IO b -> IO b
     whenFails = flip onException

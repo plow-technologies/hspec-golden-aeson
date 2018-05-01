@@ -100,7 +100,7 @@ compareWithGolden typeNameInfo proxy goldenFile comparisonFile = do
           "\n" ++
           "WARNING: Encoding new random samples do not match " ++ goldenFile ++ ".\n" ++
           "  Testing round-trip decoding/encoding of golden file."
-        encodePretty goldenSamples `shouldBe` goldenBytes
+        encodePretty goldenSamples == goldenBytes `shouldBe` True
   where
     whenFails :: forall b c . IO c -> IO b -> IO b
     whenFails = flip onException
