@@ -126,9 +126,9 @@ compareWithGolden topDir mModuleName typeName cap goldenFile = do
               failureMessage =
                 if testSamples == goldenSamples
                   then
-                    "Encoding has changed in a minor way; still can read old encodings"
+                    "Encoding has changed in a minor way; still can read old encodings. See " ++ faultyReencodedFile ++ "."
                   else
-                    "Encoding has changed in a major way; cannot read old encodings"
+                    "Encoding has changed in a major way; cannot read old encodings. See " ++ faultyReencodedFile ++ "."
             expectationFailure failureMessage
   where
     whenFails :: forall b c. IO c -> IO b -> IO b
