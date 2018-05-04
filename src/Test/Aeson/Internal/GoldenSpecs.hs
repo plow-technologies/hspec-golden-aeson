@@ -100,7 +100,11 @@ compareWithGolden typeNameInfo proxy goldenFile comparisonFile = do
           "\n" ++
           "WARNING: Encoding new random samples do not match " ++ goldenFile ++ ".\n" ++
           "  Testing round-trip decoding/encoding of golden file."
-        encodePretty goldenSamples == goldenBytes `shouldBe` True
+        if encodePretty goldenSamples == goldenBytes
+          then return ()
+          else do
+            writeReencodedComparisonFile goldenSamples
+            expectationFailure $ "Serialization has changed. Compare golden file with " ++ faultyReencodedFilePath ++ "."
   where
     whenFails :: forall b c . IO c -> IO b -> IO b
     whenFails = flip onException
@@ -108,11 +112,17 @@ compareWithGolden typeNameInfo proxy goldenFile comparisonFile = do
       case comparisonFile of
         FaultyFile -> mkFaultyFile typeNameInfo
         OverwriteGoldenFile -> goldenFile
+    faultyReencodedFilePath = mkFaultyReencodedFile typeNameInfo
     writeComparisonFile newSamples = do
       writeFile filePath (encodePretty newSamples)
       putStrLn $
         "\n" ++
         "INFO: Written the current encodings into " ++ filePath ++ "."
+    writeReencodedComparisonFile samples = do
+      writeFile faultyReencodedFilePath (encodePretty samples)
+      putStrLn $
+        "\n" ++
+        "INFO: Written the reencoded goldenFile into " ++ faultyReencodedFilePath ++ "."
 
 -- | The golden files do not exist. Create it.
 createGoldenfile :: forall a . (Arbitrary a, ToJSON a) =>
@@ -147,6 +157,15 @@ mkFaultyFile (TypeNameInfo {typeNameTypeName,typeNameModuleName, typeNameTopDir}
   case unModuleName <$> typeNameModuleName of
     Nothing         -> unTopDir typeNameTopDir </> unTypeName typeNameTypeName <.> "faulty" <.> "json"
     Just moduleName -> unTopDir typeNameTopDir </>  moduleName </> unTypeName typeNameTypeName <.> "faulty" <.> "json"
+
+-- | Create the file path to save results from a failed fallback golden test. Optionally
+-- use the module name to help avoid name collisions.  Different modules can
+-- have types of the same name.
+mkFaultyReencodedFile :: TypeNameInfo a -> FilePath
+mkFaultyReencodedFile (TypeNameInfo {typeNameTypeName,typeNameModuleName, typeNameTopDir})  =
+  case unModuleName <$> typeNameModuleName of
+    Nothing         -> unTopDir typeNameTopDir </> unTypeName typeNameTypeName <.> "faulty" <.> "reencoded" <.> "json"
+    Just moduleName -> unTopDir typeNameTopDir </>  moduleName </> unTypeName typeNameTypeName <.> "faulty" <.> "reencoded"  <.> "json"
 
 -- | Create a number of arbitrary instances of a type
 -- a sample size and a random seed.
