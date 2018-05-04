@@ -111,18 +111,42 @@ compareWithGolden topDir mModuleName typeName cap goldenFile = do
           "\n" ++
           "WARNING: New random samples do not match those in " ++ goldenFile ++ ".\n" ++
           "  Testing round-trip decoding/encoding of golden file."
-        encodePretty goldenSamples == goldenBytes `shouldBe` True
+        let reencodedGoldenSamples = encodePretty goldenSamples
+        if reencodedGoldenSamples == goldenBytes
+          then
+            -- pass the test because round-trip decode/encode still gives the same bytes
+            return ()
+          else do
+            -- how significant is the serialization change?
+            writeReencodedComparisonFile goldenSamples
+            testSamples :: RandomSamples a <-
+              either (throwIO . ErrorCall) return $
+              A.eitherDecode' reencodedGoldenSamples
+            let
+              failureMessage =
+                if testSamples == goldenSamples
+                  then
+                    "Encoding has changed in a minor way; still can read old encodings"
+                  else
+                    "Encoding has changed in a major way; cannot read old encodings"
+            expectationFailure failureMessage
   where
     whenFails :: forall b c. IO c -> IO b -> IO b
     whenFails = flip onException
 
     faultyFile = mkFaultyFilePath topDir mModuleName typeName cap
+    faultyReencodedFile = mkFaultyReencodedFilePath topDir mModuleName typeName cap
 
     writeComparisonFile newSamples = do
       writeFile faultyFile (encodePretty newSamples)
       putStrLn $
         "\n" ++
         "INFO: Written the current encodings into " ++ faultyFile ++ "."
+    writeReencodedComparisonFile samples = do
+      writeFile faultyReencodedFile (encodePretty samples)
+      putStrLn $
+        "\n" ++
+        "INFO: Written the re-encodings into " ++ faultyReencodedFile ++ "."
 
 -- | The golden files do not exist. Create them for each constructor.
 createGoldenFile :: forall a. (ToJSON a, ToADTArbitrary a) =>
@@ -157,6 +181,15 @@ mkFaultyFilePath topDir mModuleName typeName cap =
   case mModuleName of
     Nothing -> topDir </> typeName </> capConstructor cap <.> "faulty" <.> "json"
     Just moduleName -> topDir </> moduleName </> typeName </> capConstructor cap <.> "faulty" <.> "json"
+
+-- | Create the file path to save results from a failed fallback golden test. Optionally
+-- use the module name to help avoid name collisions.  Different modules can
+-- have types of the same name.
+mkFaultyReencodedFilePath :: forall a. FilePath -> Maybe FilePath -> FilePath -> ConstructorArbitraryPair a -> FilePath
+mkFaultyReencodedFilePath topDir mModuleName typeName cap =
+  case mModuleName of
+    Nothing -> topDir </> typeName </> capConstructor cap <.> "faulty" <.> "reencoded" <.> "json"
+    Just moduleName -> topDir </> moduleName </> typeName </> capConstructor cap <.> "faulty" <.> "reencoded" <.> "json"
 
 -- | Create a number of arbitrary instances of a particular constructor given
 -- a sample size and a random seed.
