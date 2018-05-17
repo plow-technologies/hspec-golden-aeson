@@ -7,6 +7,7 @@ import           Data.Proxy
 import           System.Directory
 
 import           Test.Aeson.GenericSpecs
+import           Test.Aeson.Internal.Utils (RandomMismatchOption(..))
 import           Test.Hspec
 import           Test.Hspec.Core.Runner
 
@@ -171,17 +172,10 @@ spec = do
       (s1,_) <- hspecSilently $ goldenADTSpecs defaultSettings (Proxy :: Proxy TAS.Person)
       summaryFailures s1 `shouldBe` 1
 
-    it "encoding change should fail test" $ do
-      -- clean up previously existing golden folder
-      bg <- doesDirectoryExist "golden"
-      if bg
-        then removeDirectoryRecursive "golden"
-        else return ()
-
-      -- manually create golden file which appends `.0` to all ages.
-      -- write as inline text to make test case clearer
-      let
-        goldenTweaked = "{\
+    -- golden file which appends `.0` to all ages.
+    -- write as inline text to make test case clearer
+    let
+      goldenReadCompatible = "{\
 \    \"seed\": -558805430132139320,\
 \    \"samples\": [\
 \        {\
@@ -207,12 +201,67 @@ spec = do
 \    ]\
 \}"
 
+    it "encoding read-compatible change should fail test" $ do
+      -- clean up previously existing golden folder
+      bg <- doesDirectoryExist "golden"
+      if bg
+        then removeDirectoryRecursive "golden"
+        else return ()
+
+      -- directly create golden file for tests
       createDirectoryIfMissing True "golden/Person"
-      writeFile "golden/Person/Person.json" goldenTweaked
+      writeFile "golden/Person/Person.json" goldenReadCompatible
 
       -- Aeson can decode "10.0" as `10 :: Int` but it will encode `10 :: Int` as 10
       -- This should cause the golden test to fail since it indicates a change in encoding
       (s1,_) <- hspecSilently $ goldenADTSpecs defaultSettings (Proxy :: Proxy T.Person)
+      summaryFailures s1 `shouldBe` 1
+
+    let
+      goldenByteIdentical = "{\n\
+\    \"seed\": 41,\n\
+\    \"samples\": [\n\
+\        {\n\
+\            \"age\": 1,\n\
+\            \"name\": \"abc\"\n\
+\        },\n\
+\        {\n\
+\            \"age\": 2,\n\
+\            \"name\": \"def\"\n\
+\        }\n\
+\    ]\n\
+\}"
+
+    it "different random seed but byte-for-byte identical should pass (default setting)" $ do
+      -- clean up previously existing golden folder
+      bg <- doesDirectoryExist "golden"
+      if bg
+        then removeDirectoryRecursive "golden"
+        else return ()
+
+      -- directly create golden file for tests
+      createDirectoryIfMissing True "golden/Person"
+      writeFile "golden/Person/Person.json" goldenByteIdentical
+
+      (s1,results) <- hspecSilently $ goldenADTSpecs defaultSettings (Proxy :: Proxy T.Person)
+      putStrLn results
+      summaryFailures s1 `shouldBe` 0
+
+    it "different random seed but byte-for-byte identical should fail (with custom setting)" $ do
+      -- clean up previously existing golden folder
+      bg <- doesDirectoryExist "golden"
+      if bg
+        then removeDirectoryRecursive "golden"
+        else return ()
+
+      -- directly create golden file for tests
+      createDirectoryIfMissing True "golden/Person"
+      writeFile "golden/Person/Person.json" goldenByteIdentical
+
+      let
+        customSettings = defaultSettings { randomMismatchWarning = RandomMismatchError }
+      (s1,results) <- hspecSilently $ goldenADTSpecs customSettings (Proxy :: Proxy T.Person)
+      putStrLn results
       summaryFailures s1 `shouldBe` 1
 
   describe "mkGoldenFileForType" $ do
