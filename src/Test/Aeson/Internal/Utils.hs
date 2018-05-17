@@ -51,7 +51,7 @@ data Settings = Settings
   -- ^ How many instances of each type you want. If you use ADT versions than it will use the sample size for each constructor.
   , comparisonFile :: ComparisonFile
   -- ^ Whether to create a separate comparison file or ovewrite the golden file.
-  , randomMismatchWarning :: RandomMismatchOption
+  , randomMismatchOption :: RandomMismatchOption
   -- ^ Whether to output a warning or fail the test when the random seed produces different values than the values in the golden file.
   }
 
@@ -60,7 +60,7 @@ data GoldenDirectoryOption = CustomDirectoryName String | GoldenDirectory
 
 -- | The default settings for general use cases.
 defaultSettings :: Settings
-defaultSettings = Settings GoldenDirectory False 5 FaultyFile RandomMismatchError
+defaultSettings = Settings GoldenDirectory False 5 FaultyFile RandomMismatchWarning
 
 -- | put brackets around a String.
 addBrackets :: String -> String

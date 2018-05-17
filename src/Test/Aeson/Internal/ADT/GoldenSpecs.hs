@@ -76,7 +76,7 @@ testConstructor Settings{..} moduleName typeName cap = do
   it ("produces the same JSON as is found in " ++ goldenFile) $ do
     exists <- doesFileExist goldenFile
     if exists
-      then compareWithGolden topDir mModuleName typeName cap goldenFile
+      then compareWithGolden randomMismatchOption topDir mModuleName typeName cap goldenFile
       else createGoldenFile sampleSize cap goldenFile
   where
     goldenFile = mkGoldenFilePath topDir mModuleName typeName cap
@@ -90,8 +90,8 @@ testConstructor Settings{..} moduleName typeName cap = do
 -- | The golden files already exist. Serialize values with the same seed from
 -- the golden files of each constructor and compare.
 compareWithGolden :: forall a. (Show a, Eq a, FromJSON a, ToJSON a, ToADTArbitrary a) =>
-  String -> Maybe String -> String -> ConstructorArbitraryPair a -> FilePath -> IO ()
-compareWithGolden topDir mModuleName typeName cap goldenFile = do
+  RandomMismatchOption -> String -> Maybe String -> String -> ConstructorArbitraryPair a -> FilePath -> IO ()
+compareWithGolden randomOption topDir mModuleName typeName cap goldenFile = do
   goldenSeed <- readSeed =<< readFile goldenFile
   sampleSize <- readSampleSize =<< readFile goldenFile
   newSamples <- mkRandomADTSamplesForConstructor sampleSize (Proxy :: Proxy a) (capConstructor cap) goldenSeed
@@ -105,6 +105,13 @@ compareWithGolden topDir mModuleName typeName cap goldenFile = do
         -- random samples match; test encoding of samples (the above check only tested the decoding)
         encodePretty newSamples == goldenBytes `shouldBe` True
       else do
+        let
+          -- whether to pass the test or fail due to random value mismatch
+          finalResult =
+            case randomOption of
+              RandomMismatchWarning -> return ()
+              RandomMismatchError -> expectationFailure "New random samples generated from seed in golden file do not match samples in golden file."
+
         -- do a fallback test to determine whether the mismatch is due to a random sample change only,
         -- or due to a change in encoding
         putStrLn $
@@ -115,7 +122,7 @@ compareWithGolden topDir mModuleName typeName cap goldenFile = do
         if reencodedGoldenSamples == goldenBytes
           then
             -- pass the test because round-trip decode/encode still gives the same bytes
-            return ()
+            finalResult
           else do
             -- how significant is the serialization change?
             writeReencodedComparisonFile goldenSamples
@@ -130,6 +137,7 @@ compareWithGolden topDir mModuleName typeName cap goldenFile = do
                   else
                     "Encoding has changed in a major way; cannot read old encodings. See " ++ faultyReencodedFile ++ "."
             expectationFailure failureMessage
+            finalResult
   where
     whenFails :: forall b c. IO c -> IO b -> IO b
     whenFails = flip onException

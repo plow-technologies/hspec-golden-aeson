@@ -243,8 +243,7 @@ spec = do
       createDirectoryIfMissing True "golden/Person"
       writeFile "golden/Person/Person.json" goldenByteIdentical
 
-      (s1,results) <- hspecSilently $ goldenADTSpecs defaultSettings (Proxy :: Proxy T.Person)
-      putStrLn results
+      (s1,_) <- hspecSilently $ goldenADTSpecs defaultSettings (Proxy :: Proxy T.Person)
       summaryFailures s1 `shouldBe` 0
 
     it "different random seed but byte-for-byte identical should fail (with custom setting)" $ do
@@ -259,9 +258,8 @@ spec = do
       writeFile "golden/Person/Person.json" goldenByteIdentical
 
       let
-        customSettings = defaultSettings { randomMismatchWarning = RandomMismatchError }
-      (s1,results) <- hspecSilently $ goldenADTSpecs customSettings (Proxy :: Proxy T.Person)
-      putStrLn results
+        customSettings = defaultSettings { randomMismatchOption = RandomMismatchError }
+      (s1,_) <- hspecSilently $ goldenADTSpecs customSettings (Proxy :: Proxy T.Person)
       summaryFailures s1 `shouldBe` 1
 
   describe "mkGoldenFileForType" $ do
