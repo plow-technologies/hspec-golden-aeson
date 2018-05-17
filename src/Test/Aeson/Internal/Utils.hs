@@ -25,16 +25,34 @@ import           Prelude
 import           Test.Hspec
 import           Test.QuickCheck
 
-
+-- | Option to indicate whether to create a separate comparison file or overwrite the golden file.
+-- A separate file allows you to use `diff` to compare.
+-- Overwriting allows you to use source control tools for comparison.
 data ComparisonFile
   = FaultyFile
+  -- ^ Create a new faulty file when tests fail
   | OverwriteGoldenFile
+  -- ^ Overwrite the golden file when tests fail
+
+-- | Option indicating whether to fail tests when the random seed does not produce the same values as in the golden file.
+-- Default is to output a warning.
+data RandomMismatchOption
+  = RandomMismatchWarning
+  -- ^ Only output a warning when the random seed does not produce the same values
+  | RandomMismatchError
+  -- ^ Fail the test when the random seed does not produce the same value
 
 data Settings = Settings 
-  { goldenDirectoryOption :: GoldenDirectoryOption -- ^ use a custom directory name or use the generic "golden" directory.
-  , useModuleNameAsSubDirectory :: Bool -- ^ If true, use the module name in the file path, otherwise ignore it.
-  , sampleSize :: Int -- ^ How many instances of each type you want. If you use ADT versions than it will use the sample size for each constructor.
+  { goldenDirectoryOption :: GoldenDirectoryOption
+  -- ^ use a custom directory name or use the generic "golden" directory.
+  , useModuleNameAsSubDirectory :: Bool
+  -- ^ If true, use the module name in the file path, otherwise ignore it.
+  , sampleSize :: Int
+  -- ^ How many instances of each type you want. If you use ADT versions than it will use the sample size for each constructor.
   , comparisonFile :: ComparisonFile
+  -- ^ Whether to create a separate comparison file or ovewrite the golden file.
+  , randomMismatchWarning :: RandomMismatchOption
+  -- ^ Whether to output a warning or fail the test when the random seed produces different values than the values in the golden file.
   }
 
 -- | A custom directory name or a preselected directory name.
@@ -42,7 +60,7 @@ data GoldenDirectoryOption = CustomDirectoryName String | GoldenDirectory
 
 -- | The default settings for general use cases.
 defaultSettings :: Settings
-defaultSettings = Settings GoldenDirectory False 5 FaultyFile
+defaultSettings = Settings GoldenDirectory False 5 FaultyFile RandomMismatchError
 
 -- | put brackets around a String.
 addBrackets :: String -> String
