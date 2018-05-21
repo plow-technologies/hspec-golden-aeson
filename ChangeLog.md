@@ -1,5 +1,11 @@
 # Revision history for hspec-golden-aeson
 
+## 0.7.0.0 -- 2018-05-17
+
+* Breaking change: allow roundtripAndGoldenADTSpecs test to pass when random samples generated from the seed in the golden file do not produce the same Haskell samples, but yet decoding and re-encoding the golden file still produces the same bytes as in the golden file.
+* Add an additional faulty file ending in `.faulty.reencoded.json` when the byte-for-byte decode/encode round-trip fails. This allows you to compare the encoding changes without the noise of the random sample change. In this case, the test will output a message indicating whether decoding the golden file produces the same Haskell values as decoding the re-encoded files. If they produce the same values, that is likely a minor encoding change, but still a change so tests fail.
+* Add `RandomMismatchOption` to `Settings` so you can have the old behavior of failing tests when random samples change.
+
 ## 0.6.0.0 -- 2018-01-04
 
 * Test encoding in `roundtripAndGoldenADTSpecs' and 'roundtripAndGoldenADTSpecsWithSettings` functions. This may break current tests because only decoding was tested previously.

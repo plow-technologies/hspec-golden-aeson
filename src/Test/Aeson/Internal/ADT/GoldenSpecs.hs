@@ -76,7 +76,7 @@ testConstructor Settings{..} moduleName typeName cap = do
   it ("produces the same JSON as is found in " ++ goldenFile) $ do
     exists <- doesFileExist goldenFile
     if exists
-      then compareWithGolden topDir mModuleName typeName cap goldenFile
+      then compareWithGolden randomMismatchOption topDir mModuleName typeName cap goldenFile
       else createGoldenFile sampleSize cap goldenFile
   where
     goldenFile = mkGoldenFilePath topDir mModuleName typeName cap
@@ -90,8 +90,8 @@ testConstructor Settings{..} moduleName typeName cap = do
 -- | The golden files already exist. Serialize values with the same seed from
 -- the golden files of each constructor and compare.
 compareWithGolden :: forall a. (Show a, Eq a, FromJSON a, ToJSON a, ToADTArbitrary a) =>
-  String -> Maybe String -> String -> ConstructorArbitraryPair a -> FilePath -> IO ()
-compareWithGolden topDir mModuleName typeName cap goldenFile = do
+  RandomMismatchOption -> String -> Maybe String -> String -> ConstructorArbitraryPair a -> FilePath -> IO ()
+compareWithGolden randomOption topDir mModuleName typeName cap goldenFile = do
   goldenSeed <- readSeed =<< readFile goldenFile
   sampleSize <- readSampleSize =<< readFile goldenFile
   newSamples <- mkRandomADTSamplesForConstructor sampleSize (Proxy :: Proxy a) (capConstructor cap) goldenSeed
@@ -100,19 +100,61 @@ compareWithGolden topDir mModuleName typeName cap goldenFile = do
     goldenSamples :: RandomSamples a <-
       either (throwIO . ErrorCall) return $
       A.eitherDecode' goldenBytes
-    newSamples `shouldBe` goldenSamples
-    encodePretty newSamples `shouldBe` goldenBytes
+    if newSamples == goldenSamples
+      then
+        -- random samples match; test encoding of samples (the above check only tested the decoding)
+        encodePretty newSamples == goldenBytes `shouldBe` True
+      else do
+        let
+          -- whether to pass the test or fail due to random value mismatch
+          finalResult =
+            case randomOption of
+              RandomMismatchWarning -> return ()
+              RandomMismatchError -> expectationFailure "New random samples generated from seed in golden file do not match samples in golden file."
+
+        -- do a fallback test to determine whether the mismatch is due to a random sample change only,
+        -- or due to a change in encoding
+        putStrLn $
+          "\n" ++
+          "WARNING: New random samples do not match those in " ++ goldenFile ++ ".\n" ++
+          "  Testing round-trip decoding/encoding of golden file."
+        let reencodedGoldenSamples = encodePretty goldenSamples
+        if reencodedGoldenSamples == goldenBytes
+          then
+            -- pass the test because round-trip decode/encode still gives the same bytes
+            finalResult
+          else do
+            -- how significant is the serialization change?
+            writeReencodedComparisonFile goldenSamples
+            testSamples :: RandomSamples a <-
+              either (throwIO . ErrorCall) return $
+              A.eitherDecode' reencodedGoldenSamples
+            let
+              failureMessage =
+                if testSamples == goldenSamples
+                  then
+                    "Encoding has changed in a minor way; still can read old encodings. See " ++ faultyReencodedFile ++ "."
+                  else
+                    "Encoding has changed in a major way; cannot read old encodings. See " ++ faultyReencodedFile ++ "."
+            expectationFailure failureMessage
+            finalResult
   where
     whenFails :: forall b c. IO c -> IO b -> IO b
     whenFails = flip onException
 
     faultyFile = mkFaultyFilePath topDir mModuleName typeName cap
+    faultyReencodedFile = mkFaultyReencodedFilePath topDir mModuleName typeName cap
 
     writeComparisonFile newSamples = do
       writeFile faultyFile (encodePretty newSamples)
       putStrLn $
         "\n" ++
         "INFO: Written the current encodings into " ++ faultyFile ++ "."
+    writeReencodedComparisonFile samples = do
+      writeFile faultyReencodedFile (encodePretty samples)
+      putStrLn $
+        "\n" ++
+        "INFO: Written the re-encodings into " ++ faultyReencodedFile ++ "."
 
 -- | The golden files do not exist. Create them for each constructor.
 createGoldenFile :: forall a. (ToJSON a, ToADTArbitrary a) =>
@@ -147,6 +189,15 @@ mkFaultyFilePath topDir mModuleName typeName cap =
   case mModuleName of
     Nothing -> topDir </> typeName </> capConstructor cap <.> "faulty" <.> "json"
     Just moduleName -> topDir </> moduleName </> typeName </> capConstructor cap <.> "faulty" <.> "json"
+
+-- | Create the file path to save results from a failed fallback golden test. Optionally
+-- use the module name to help avoid name collisions.  Different modules can
+-- have types of the same name.
+mkFaultyReencodedFilePath :: forall a. FilePath -> Maybe FilePath -> FilePath -> ConstructorArbitraryPair a -> FilePath
+mkFaultyReencodedFilePath topDir mModuleName typeName cap =
+  case mModuleName of
+    Nothing -> topDir </> typeName </> capConstructor cap <.> "faulty" <.> "reencoded" <.> "json"
+    Just moduleName -> topDir </> moduleName </> typeName </> capConstructor cap <.> "faulty" <.> "reencoded" <.> "json"
 
 -- | Create a number of arbitrary instances of a particular constructor given
 -- a sample size and a random seed.
