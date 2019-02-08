@@ -107,10 +107,10 @@ compareWithGolden randomOption topDir mModuleName typeName cap goldenFile = do
       else do
         let
           -- whether to pass the test or fail due to random value mismatch
-          finalResult =
-            case randomOption of
-              RandomMismatchWarning -> return ()
-              RandomMismatchError -> expectationFailure "New random samples generated from seed in golden file do not match samples in golden file."
+          finalResult = expectationFailure "New random samples generated from seed in golden file do not match samples in golden file."
+            -- case randomOption of
+            --   RandomMismatchWarning -> return ()
+            --   RandomMismatchError -> expectationFailure "New random samples generated from seed in golden file do not match samples in golden file."
 
         -- do a fallback test to determine whether the mismatch is due to a random sample change only,
         -- or due to a change in encoding
