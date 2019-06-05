@@ -1,0 +1,7 @@
+resolver: lts-13.24
+
+packages:
+- '.'
+
+extra-deps:
+- quickcheck-arbitrary-adt-0.3.0.0
