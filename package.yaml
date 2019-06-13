@@ -34,7 +34,10 @@ library:
   - transformers
   ghc-options:
   - -Wall
-#  - -Werror
+  - -Werror
+  - -fwarn-incomplete-uni-patterns
+  - -fwarn-incomplete-record-updates
+  - -fno-warn-name-shadowing
 
 tests:
   test:
