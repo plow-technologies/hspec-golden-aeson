@@ -63,8 +63,9 @@ goldenADTSpecs settings proxy = goldenADTSpecsWithNote settings proxy Nothing
 goldenADTSpecsWithNote :: forall a. (ToADTArbitrary a, Eq a, Show a, ToJSON a, FromJSON a) =>
   Settings -> Proxy a -> Maybe String -> Spec
 goldenADTSpecsWithNote settings Proxy mNote = do
-  (moduleName,(typeName,constructors)) <- runIO $ fmap (adtModuleName &&& adtTypeName &&& adtCAPs) <$> generate $ toADTArbitrary (Proxy :: Proxy a)
-  describe ("JSON encoding of " ++ typeName ++ note) $
+  (moduleName,(typeName',constructors)) <- runIO $ fmap (adtModuleName &&& adtTypeName &&& adtCAPs) <$> generate $ toADTArbitrary (Proxy :: Proxy a)
+  let typeName = typeNameModifier settings typeName'
+  describe (encodingFormat settings ++ " encoding of " ++ typeName ++ note) $
     mapM_ (testConstructor settings moduleName typeName) constructors
   where
     note = maybe "" (" " ++) mNote
@@ -73,7 +74,7 @@ goldenADTSpecsWithNote settings Proxy mNote = do
 testConstructor :: forall a. (Eq a, Show a, FromJSON a, ToJSON a, ToADTArbitrary a) =>
   Settings -> String -> String -> ConstructorArbitraryPair a -> SpecWith ( Arg (IO ()))
 testConstructor Settings{..} moduleName typeName cap = do
-  it ("produces the same JSON as is found in " ++ goldenFile) $ do
+  it ("produces the same " ++ encodingFormat ++ " as is found in " ++ goldenFile) $ do
     exists <- doesFileExist goldenFile
     if exists
       then compareWithGolden randomMismatchOption topDir mModuleName typeName cap goldenFile

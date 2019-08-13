@@ -21,6 +21,7 @@ import           Data.Proxy
 import           Data.Typeable
 
 import           Prelude
+import           Data.Char
 
 import           Test.Hspec
 import           Test.QuickCheck
@@ -53,6 +54,10 @@ data Settings = Settings
   -- ^ Whether to create a separate comparison file or ovewrite the golden file.
   , randomMismatchOption :: RandomMismatchOption
   -- ^ Whether to output a warning or fail the test when the random seed produces different values than the values in the golden file.
+  , typeNameModifier :: String -> String
+  -- ^ How to construct the type name from the string version of a type
+  , encodingFormat :: String
+  -- ^ The encoding format that is being tested
   }
 
 -- | A custom directory name or a preselected directory name.
@@ -60,7 +65,7 @@ data GoldenDirectoryOption = CustomDirectoryName String | GoldenDirectory
 
 -- | The default settings for general use cases.
 defaultSettings :: Settings
-defaultSettings = Settings GoldenDirectory False 5 FaultyFile RandomMismatchWarning
+defaultSettings = Settings GoldenDirectory False 5 FaultyFile RandomMismatchWarning id "JSON"
 
 -- | put brackets around a String.
 addBrackets :: String -> String
@@ -135,13 +140,14 @@ data TypeNameInfo a =
 
 mkTypeNameInfo :: forall a . Arbitrary a => Typeable a => Settings -> Proxy a -> IO (TypeNameInfo a)
 mkTypeNameInfo (Settings { useModuleNameAsSubDirectory
-                       , goldenDirectoryOption}) proxy = do
+                         , goldenDirectoryOption
+                         , typeNameModifier }) proxy = do
   maybeModuleName <- maybeModuleNameIO
   return $ TypeNameInfo (TopDir         topDir )
                         (ModuleName <$> maybeModuleName )
                         (TypeName typeName)
   where
-   typeName = show (typeRep proxy)
+   typeName = typeNameModifier (show (typeRep proxy))
    maybeModuleNameIO =
      if useModuleNameAsSubDirectory
      then do
