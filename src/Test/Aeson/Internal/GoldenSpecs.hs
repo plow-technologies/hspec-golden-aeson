@@ -70,8 +70,8 @@ goldenSpecsWithNotePlain settings@Settings{..} typeNameInfo@(TypeNameInfo{typeNa
   let goldenFile = mkGoldenFile typeNameInfo
       note = maybe "" (" " ++) mNote
 
-  describe ("JSON encoding of " ++ addBrackets  (unTypeName typeNameTypeName) ++ note) $
-    it ("produces the same JSON as is found in " ++ goldenFile) $ do
+  describe (encodingFormat ++ " encoding of " ++ addBrackets  (unTypeName typeNameTypeName) ++ note) $
+    it ("produces the same " ++ encodingFormat ++ " as is found in " ++ goldenFile) $ do
       exists <- doesFileExist goldenFile
       if exists
         then compareWithGolden typeNameInfo proxy goldenFile comparisonFile
