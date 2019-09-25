@@ -1,10 +1,10 @@
-resolver: lts-9.9
+resolver: lts-14.7
 
 packages:
 - '.'
 
 extra-deps:
-- quickcheck-arbitrary-adt-0.3.0.0
+- ../quickcheck-arbitrary-adt
 
 flags: {}
 

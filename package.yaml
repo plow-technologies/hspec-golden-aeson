@@ -10,6 +10,12 @@ license: BSD3
 homepage: https://github.com/plow-technologies/hspec-golden-aeson#readme
 github: plow-technologies/hspec-golden-aeson
 
+ghc-options:
+- -Wall
+- -Werror
+- -fwarn-incomplete-uni-patterns
+- -fwarn-incomplete-record-updates
+
 library:
   source-dirs: src
   exposed-modules: 
@@ -29,12 +35,9 @@ library:
   - filepath
   - hspec
   - random
-  - quickcheck-arbitrary-adt >= 0.3.0.0
+  - quickcheck-arbitrary-adt >= 1.0.0.0
   - QuickCheck
   - transformers
-  ghc-options:
-  - -Wall
-#  - -Werror
 
 tests:
   test:
@@ -51,9 +54,3 @@ tests:
     - quickcheck-arbitrary-adt
     - QuickCheck
     - transformers
-    ghc-options:
-    - -Wall
-#    - -Werror
-#    - -fwarn-incomplete-uni-patterns
-#    - -fwarn-incomplete-record-updates
-#    - -fno-warn-name-shadowing
