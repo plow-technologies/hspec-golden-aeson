@@ -4,6 +4,7 @@ Description : Golden tests for ToADTArbitrary
 Copyright   : (c) Plow Technologies, 2016
 License     : BSD3
 Maintainer  : mchaver@gmail.com
+Stability   : Beta
 
 Internal module, use at your own risk.
 -}
@@ -16,29 +17,36 @@ Internal module, use at your own risk.
 {-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Test.Aeson.Internal.ADT.GoldenSpecs where
+module Test.Aeson.ADT.GoldenSpecs where
 
-import           Control.Arrow
-import           Control.Exception
-import           Control.Monad
+-- base
+import           Control.Arrow     ((&&&))
+import           Control.Exception (ErrorCall(ErrorCall), onException, throwIO)
+import           Control.Monad     (replicateM)
+import           Data.Data         (Data)
+import           Data.Proxy        (Proxy(Proxy))
+import           System.Random     (randomIO)
 
+-- bytestring
+import           Data.ByteString.Lazy      (writeFile, readFile)
+
+-- aeson
 import           Data.Aeson                (ToJSON, FromJSON)
 import qualified Data.Aeson                as A
-import           Data.Aeson.Encode.Pretty
-import           Data.ByteString.Lazy      (writeFile, readFile)
-import           Data.Proxy
+import           Data.Aeson.Encode.Pretty  (encodePretty)
 
 import           Prelude            hiding (writeFile,readFile)
 
-import           System.Directory
-import           System.FilePath
-import           System.Random
+-- file system
+import           System.Directory (createDirectoryIfMissing, doesFileExist)
+import           System.FilePath  ((</>), (<.>), takeDirectory)
 
-import           Test.Aeson.Internal.RandomSamples
-import           Test.Aeson.Internal.Utils
-import           Test.Hspec
-import           Test.QuickCheck
-import           Test.QuickCheck.Arbitrary.ADT
+-- testing
+import           Test.Aeson.Internal.RandomSamples (RandomSamples(RandomSamples), readSampleSize, readSeed, setSeed)
+import qualified Test.Aeson.Internal.Utils      as Aeson
+import           Test.Hspec                        (Spec, SpecWith, Arg, describe, expectationFailure, it, runIO, shouldBe)
+import           Test.QuickCheck                   (Arbitrary, generate)
+import           Test.QuickCheck.Arbitrary.ADT     (ConstructorArbitraryPair, arbitraryAdt, adtCAPs, adtModuleName, adtTypeName, capConstructor, capArbitrary)
 
 -- | Tests to ensure that JSON encoding has not unintentionally changed. This
 -- could be caused by the following:
@@ -53,25 +61,41 @@ import           Test.QuickCheck.Arbitrary.ADT
 -- compare with golden file if it exists. Golden file encodes json format of a
 -- type. It is recommended that you put the golden files under revision control
 -- to help monitor changes.
-goldenADTSpecs :: forall a. (ToADTArbitrary a, Eq a, Show a, ToJSON a, FromJSON a) =>
-  Settings -> Proxy a -> Spec
+goldenADTSpecs
+  :: forall a. (Eq a, Show a, ToJSON a, FromJSON a, Arbitrary a, Data a)
+  => Aeson.Settings
+  -> Proxy a
+  -> Spec
 goldenADTSpecs settings proxy = goldenADTSpecsWithNote settings proxy Nothing
 
 -- | same as 'goldenADTSpecs' but has the option of passing a note to the
 -- 'describe' function.
-goldenADTSpecsWithNote :: forall a. (ToADTArbitrary a, Eq a, Show a, ToJSON a, FromJSON a) =>
-  Settings -> Proxy a -> Maybe String -> Spec
+goldenADTSpecsWithNote
+  :: forall a. (Eq a, Show a, ToJSON a, FromJSON a, Arbitrary a, Data a)
+  => Aeson.Settings
+  -> Proxy a
+  -> Maybe String
+  -> Spec
 goldenADTSpecsWithNote settings Proxy mNote = do
-  (moduleName,(typeName,constructors)) <- runIO $ fmap (adtModuleName &&& adtTypeName &&& adtCAPs) <$> generate $ toADTArbitrary (Proxy :: Proxy a)
+  (moduleName,(typeName,constructors)) <-
+    runIO $ fmap (adtModuleName &&& adtTypeName &&& adtCAPs)
+    <$> generate $ arbitraryAdt (Proxy :: Proxy a)
+
   describe ("JSON encoding of " ++ typeName ++ note) $
     mapM_ (testConstructor settings moduleName typeName) constructors
+
   where
     note = maybe "" (" " ++) mNote
 
 -- | test a single set of values from a constructor for a given type.
-testConstructor :: forall a. (Eq a, Show a, FromJSON a, ToJSON a, ToADTArbitrary a) =>
-  Settings -> String -> String -> ConstructorArbitraryPair a -> SpecWith ( Arg (IO ()))
-testConstructor Settings{..} moduleName typeName cap = do
+testConstructor
+  :: forall a. (Eq a, Show a, FromJSON a, ToJSON a, Arbitrary a, Data a)
+  => Aeson.Settings
+  -> String
+  -> String
+  -> ConstructorArbitraryPair a
+  -> SpecWith (Arg (IO ()))
+testConstructor Aeson.Settings{..} moduleName typeName cap = do
   it ("produces the same JSON as is found in " ++ goldenFile) $ do
     exists <- doesFileExist goldenFile
     if exists
@@ -80,16 +104,23 @@ testConstructor Settings{..} moduleName typeName cap = do
   where
     goldenFile = mkGoldenFilePath topDir mModuleName typeName cap
     topDir = case goldenDirectoryOption of
-      GoldenDirectory -> "golden"
-      CustomDirectoryName d -> d
+      Aeson.GoldenDirectory -> "golden"
+      Aeson.CustomDirectoryName d -> d
     mModuleName = case useModuleNameAsSubDirectory of
       True  -> Just moduleName
       False -> Nothing
 
 -- | The golden files already exist. Serialize values with the same seed from
 -- the golden files of each constructor and compare.
-compareWithGolden :: forall a. (Show a, Eq a, FromJSON a, ToJSON a, ToADTArbitrary a) =>
-  RandomMismatchOption -> String -> Maybe String -> String -> ConstructorArbitraryPair a -> FilePath -> IO ()
+compareWithGolden
+  :: forall a. (Show a, Eq a, FromJSON a, ToJSON a, Arbitrary a, Data a)
+  => Aeson.RandomMismatchOption
+  -> String
+  -> Maybe String
+  -> String
+  -> ConstructorArbitraryPair a
+  -> FilePath
+  -> IO ()
 compareWithGolden randomOption topDir mModuleName typeName cap goldenFile = do
   goldenSeed <- readSeed =<< readFile goldenFile
   sampleSize <- readSampleSize =<< readFile goldenFile
@@ -108,8 +139,8 @@ compareWithGolden randomOption topDir mModuleName typeName cap goldenFile = do
           -- whether to pass the test or fail due to random value mismatch
           finalResult =
             case randomOption of
-              RandomMismatchWarning -> return ()
-              RandomMismatchError -> expectationFailure "New random samples generated from seed in golden file do not match samples in golden file."
+              Aeson.RandomMismatchWarning -> return ()
+              Aeson.RandomMismatchError -> expectationFailure "New random samples generated from seed in golden file do not match samples in golden file."
 
         -- do a fallback test to determine whether the mismatch is due to a random sample change only,
         -- or due to a change in encoding
@@ -156,8 +187,12 @@ compareWithGolden randomOption topDir mModuleName typeName cap goldenFile = do
         "INFO: Written the re-encodings into " ++ faultyReencodedFile ++ "."
 
 -- | The golden files do not exist. Create them for each constructor.
-createGoldenFile :: forall a. (ToJSON a, ToADTArbitrary a) =>
-  Int -> ConstructorArbitraryPair a -> FilePath -> IO ()
+createGoldenFile
+  :: forall a. (ToJSON a, Arbitrary a, Data a)
+  => Int
+  -> ConstructorArbitraryPair a
+  -> FilePath
+  -> IO ()
 createGoldenFile sampleSize cap goldenFile = do
   createDirectoryIfMissing True (takeDirectory goldenFile)
   rSeed <- randomIO :: IO Int
@@ -174,7 +209,13 @@ createGoldenFile sampleSize cap goldenFile = do
 -- | Create the file path for the golden file. Optionally use the module name to
 -- help avoid name collissions. Different modules can have types of the same
 -- name.
-mkGoldenFilePath :: forall a. FilePath -> Maybe FilePath -> FilePath -> ConstructorArbitraryPair a -> FilePath
+mkGoldenFilePath
+  :: forall a.
+     FilePath
+  -> Maybe FilePath
+  -> FilePath
+  -> ConstructorArbitraryPair a
+  -> FilePath
 mkGoldenFilePath topDir mModuleName typeName cap =
   case mModuleName of
     Nothing -> topDir </> typeName </> capConstructor cap <.> "json"
@@ -183,7 +224,13 @@ mkGoldenFilePath topDir mModuleName typeName cap =
 -- | Create the file path to save results from a failed golden test. Optionally
 -- use the module name to help avoid name collisions.  Different modules can
 -- have types of the same name.
-mkFaultyFilePath :: forall a. FilePath -> Maybe FilePath -> FilePath -> ConstructorArbitraryPair a -> FilePath
+mkFaultyFilePath
+  :: forall a.
+     FilePath
+  -> Maybe FilePath
+  -> FilePath
+  -> ConstructorArbitraryPair a
+  -> FilePath
 mkFaultyFilePath topDir mModuleName typeName cap =
   case mModuleName of
     Nothing -> topDir </> typeName </> capConstructor cap <.> "faulty" <.> "json"
@@ -192,7 +239,13 @@ mkFaultyFilePath topDir mModuleName typeName cap =
 -- | Create the file path to save results from a failed fallback golden test. Optionally
 -- use the module name to help avoid name collisions.  Different modules can
 -- have types of the same name.
-mkFaultyReencodedFilePath :: forall a. FilePath -> Maybe FilePath -> FilePath -> ConstructorArbitraryPair a -> FilePath
+mkFaultyReencodedFilePath
+  :: forall a.
+     FilePath
+  -> Maybe FilePath
+  -> FilePath
+  -> ConstructorArbitraryPair a
+  -> FilePath
 mkFaultyReencodedFilePath topDir mModuleName typeName cap =
   case mModuleName of
     Nothing -> topDir </> typeName </> capConstructor cap <.> "faulty" <.> "reencoded" <.> "json"
@@ -200,8 +253,13 @@ mkFaultyReencodedFilePath topDir mModuleName typeName cap =
 
 -- | Create a number of arbitrary instances of a particular constructor given
 -- a sample size and a random seed.
-mkRandomADTSamplesForConstructor :: forall a. (ToADTArbitrary a) =>
-  Int -> Proxy a -> String -> Int -> IO (RandomSamples a)
+mkRandomADTSamplesForConstructor
+  :: forall a. (Arbitrary a, Data a)
+  => Int
+  -> Proxy a
+  -> String
+  -> Int
+  -> IO (RandomSamples a)
 mkRandomADTSamplesForConstructor sampleSize Proxy conName rSeed = do
   generatedADTs <- generate gen
   let caps         = concat $ adtCAPs <$> generatedADTs
@@ -210,12 +268,12 @@ mkRandomADTSamplesForConstructor sampleSize Proxy conName rSeed = do
   return $ RandomSamples rSeed arbs
   where
     correctedSampleSize = if sampleSize <= 0 then 1 else sampleSize
-    gen = setSeed rSeed $ replicateM correctedSampleSize (toADTArbitrary (Proxy :: Proxy a))
+    gen = setSeed rSeed $ replicateM correctedSampleSize (arbitraryAdt (Proxy :: Proxy a))
 
 -- | Make a Golden File for the Proxy of a type if the file does not exist.
-mkGoldenFileForType :: forall a. (ToJSON a, ToADTArbitrary a) => Int -> Proxy a -> FilePath -> IO ()
+mkGoldenFileForType :: forall a. (ToJSON a, Data a, Arbitrary a) => Int -> Proxy a -> FilePath -> IO ()
 mkGoldenFileForType sampleSize Proxy goldenPath = do
-  (typeName, constructors) <- fmap (adtTypeName &&& adtCAPs) <$> generate $ toADTArbitrary (Proxy :: Proxy a)
+  (typeName, constructors) <- fmap (adtTypeName &&& adtCAPs) <$> generate $ arbitraryAdt (Proxy :: Proxy a)
   mapM_
     (\constructor -> do
         let goldenFile = goldenPath </> typeName </> capConstructor constructor <.> ".json"
