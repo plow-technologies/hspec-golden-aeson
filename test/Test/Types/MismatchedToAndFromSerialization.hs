@@ -1,16 +1,20 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
+
 module Test.Types.MismatchedToAndFromSerialization where
 
 import           Data.Aeson
+import           Data.Data (Data)
 import           GHC.Generics
 import           Test.QuickCheck
 import           Test.QuickCheck.Arbitrary.ADT
 
-data Person = Person {
-  name :: String
-, age  :: Int
-} deriving (Eq,Show,Generic)
+data Person =
+  Person
+    { name :: String
+    , age  :: Int
+    } deriving (Data,Eq,Show,Generic)
 
 -- ToJSON and FromJSON use different strings, this should break.
 instance ToJSON Person where

@@ -18,7 +18,8 @@ ghc-options:
 
 library:
   source-dirs: src
-  exposed-modules: 
+  exposed-modules:
+  - Test.Aeson    
   - Test.Aeson.GenericSpecs
   - Test.Aeson.Internal.ADT.GoldenSpecs
   - Test.Aeson.Internal.ADT.RoundtripSpecs
