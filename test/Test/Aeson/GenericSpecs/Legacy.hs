@@ -1,6 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Test.Aeson.GenericSpecsSpec where
+module Test.Aeson.GenericSpecs.Legacy
+  ( spec
+  ) where
 
 import           Data.Proxy
 
@@ -284,8 +286,3 @@ spec = do
       doesFileExist "golden/SumType/SumType1.json" `shouldReturn` True
       doesFileExist "golden/SumType/SumType2.json" `shouldReturn` True
       doesFileExist "golden/SumType/SumType3.json" `shouldReturn` True
-
-
-
-main :: IO ()
-main = hspec spec
