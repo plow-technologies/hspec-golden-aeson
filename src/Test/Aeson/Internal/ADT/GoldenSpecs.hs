@@ -27,6 +27,8 @@ import           Data.Aeson                (ToJSON, FromJSON)
 import qualified Data.Aeson                as A
 import           Data.Aeson.Encode.Pretty
 import           Data.ByteString.Lazy      (writeFile, readFile)
+import qualified Data.ByteString.Lazy.Char8 as BS8
+import           Data.Maybe (fromMaybe)
 import           Data.Proxy
 
 import           Prelude            hiding (writeFile,readFile)
@@ -96,7 +98,7 @@ compareWithGolden randomOption topDir mModuleName typeName cap goldenFile = do
   sampleSize <- readSampleSize =<< readFile goldenFile
   newSamples <- mkRandomADTSamplesForConstructor sampleSize (Proxy :: Proxy a) (capConstructor cap) goldenSeed
   whenFails (writeComparisonFile newSamples) $ do
-    goldenBytes <- readFile goldenFile
+    goldenBytes <- stripTrailingNewline <$> readFile goldenFile
     goldenSamples :: RandomSamples a <-
       either (throwIO . ErrorCall) return $
       A.eitherDecode' goldenBytes
@@ -139,6 +141,8 @@ compareWithGolden randomOption topDir mModuleName typeName cap goldenFile = do
             expectationFailure failureMessage
             finalResult
   where
+    stripTrailingNewline bs =
+      fromMaybe bs $ BS8.stripSuffix "\n" bs
     whenFails :: forall b c. IO c -> IO b -> IO b
     whenFails = flip onException
 
