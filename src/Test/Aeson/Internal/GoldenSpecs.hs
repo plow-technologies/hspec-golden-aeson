@@ -23,6 +23,8 @@ import           Control.Monad
 import           Data.Aeson
 import           Data.Aeson.Encode.Pretty
 import           Data.ByteString.Lazy hiding (putStrLn)
+import qualified Data.ByteString.Lazy.Char8 as BS8
+import           Data.Maybe (fromMaybe)
 import           Data.Proxy
 import           Data.Typeable
 
@@ -66,7 +68,7 @@ goldenSpecsWithNote settings@Settings{..} proxy mNote = do
 goldenSpecsWithNotePlain :: forall a. (Arbitrary a, ToJSON a, FromJSON a) =>
   Settings -> TypeNameInfo a -> Maybe String -> Spec
 goldenSpecsWithNotePlain settings@Settings{..} typeNameInfo@(TypeNameInfo{typeNameTypeName}) mNote = do
-  let proxy = Proxy :: Proxy a  
+  let proxy = Proxy :: Proxy a
   let goldenFile = mkGoldenFile typeNameInfo
       note = maybe "" (" " ++) mNote
 
@@ -77,7 +79,7 @@ goldenSpecsWithNotePlain settings@Settings{..} typeNameInfo@(TypeNameInfo{typeNa
         then compareWithGolden typeNameInfo proxy goldenFile comparisonFile
         else createGoldenfile settings proxy goldenFile
 
-    
+
 -- | The golden files already exist. Serialize values with the same seed from
 -- the golden file and compare the with the JSON in the golden file.
 compareWithGolden :: forall a .
@@ -88,7 +90,7 @@ compareWithGolden typeNameInfo proxy goldenFile comparisonFile = do
   sampleSize <- readSampleSize =<< readFile goldenFile
   newSamples <- mkRandomSamples sampleSize proxy goldenSeed
   whenFails (writeComparisonFile newSamples) $ do
-    goldenBytes <- readFile goldenFile
+    goldenBytes <- stripTrailingNewline <$> readFile goldenFile
     goldenSamples :: RandomSamples a <-
       either (throwIO . ErrorCall) return $
       eitherDecode' goldenBytes
@@ -106,6 +108,8 @@ compareWithGolden typeNameInfo proxy goldenFile comparisonFile = do
             writeReencodedComparisonFile goldenSamples
             expectationFailure $ "Serialization has changed. Compare golden file with " ++ faultyReencodedFilePath ++ "."
   where
+    stripTrailingNewline bs =
+      fromMaybe bs $ BS8.stripSuffix "\n" bs
     whenFails :: forall b c . IO c -> IO b -> IO b
     whenFails = flip onException
     filePath =

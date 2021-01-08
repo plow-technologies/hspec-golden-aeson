@@ -3,6 +3,7 @@
 module Test.Aeson.GenericSpecsSpec where
 
 import           Data.Proxy
+import           Data.Monoid ((<>))
 
 import           System.Directory
 
@@ -242,6 +243,23 @@ spec = do
       -- directly create golden file for tests
       createDirectoryIfMissing True "golden/Person"
       writeFile "golden/Person/Person.json" goldenByteIdentical
+
+      (s1,_) <- hspecSilently $ goldenADTSpecs defaultSettings (Proxy :: Proxy T.Person)
+      summaryFailures s1 `shouldBe` 0
+
+    it "ignores a final newline (GH #12)" $ do
+      let
+        goldenBytePlusNewline =
+          goldenByteIdentical <> "\n"
+      -- clean up previously existing golden folder
+      bg <- doesDirectoryExist "golden"
+      if bg
+        then removeDirectoryRecursive "golden"
+        else return ()
+
+      -- directly create golden file for tests
+      createDirectoryIfMissing True "golden/Person"
+      writeFile "golden/Person/Person.json" goldenBytePlusNewline
 
       (s1,_) <- hspecSilently $ goldenADTSpecs defaultSettings (Proxy :: Proxy T.Person)
       summaryFailures s1 `shouldBe` 0
