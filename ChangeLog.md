@@ -1,5 +1,19 @@
 # Revision history for hspec-golden-aeson
 
+## 0.8.0.0 -- 2021-03-12
+
+* Breaking change: Seed is now an `Int32` so golden files are more portable. This
+  requires regenerating all golden files which have a seed that overflows
+* Breaking change: Golden files are no longer generated automatically if they
+  don't exist, to create them, set the `CREATE_MISSING_GOLDEN` environment variable.
+  This is to prevent missing golden files from silently making golden tests
+  degrade to round-trip tests
+* Add a `RECREATE_MISSING_GOLDEN` environemnt variable. When present it will
+  cause golden files to be re-created if they cause the test to fail. This is
+  useful for updating golden files when serialization has been purposedly
+  modified and to update the seed if it breaks due to overflow now that it is
+  only 32bit wide.
+
 ## 0.7.0.0 -- 2018-05-17
 
 * Breaking change: allow roundtripAndGoldenADTSpecs test to pass when random samples generated from the seed in the golden file do not produce the same Haskell samples, but yet decoding and re-encoding the golden file still produces the same bytes as in the golden file.
