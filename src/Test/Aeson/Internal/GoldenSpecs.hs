@@ -38,6 +38,7 @@ import           System.Random
 import           Test.Aeson.Internal.RandomSamples
 import           Test.Aeson.Internal.Utils
 import           Test.Hspec
+import           Test.HUnit.Lang (HUnitFailure)
 import           Test.QuickCheck
 
 -- | Tests to ensure that JSON encoding has not unintentionally changed. This
@@ -78,6 +79,11 @@ goldenSpecsWithNotePlain settings@Settings{..} typeNameInfo@(TypeNameInfo{typeNa
       exists <- doesFileExist goldenFile
       if exists
         then compareWithGolden typeNameInfo proxy goldenFile comparisonFile
+          `catch` \(err :: HUnitFailure) -> do
+            doFix <- isJust <$> lookupEnv "RECREATE_BROKEN_GOLDEN"
+            if doFix
+              then createGoldenfile settings proxy goldenFile
+              else throwIO err
         else do
           doCreate <- isJust <$> lookupEnv "CREATE_MISSING_GOLDEN"
           if doCreate

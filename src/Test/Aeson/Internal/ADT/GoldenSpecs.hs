@@ -41,6 +41,7 @@ import           System.Random
 import           Test.Aeson.Internal.RandomSamples
 import           Test.Aeson.Internal.Utils
 import           Test.Hspec
+import           Test.HUnit.Lang (HUnitFailure)
 import           Test.QuickCheck
 import           Test.QuickCheck.Arbitrary.ADT
 
@@ -80,6 +81,11 @@ testConstructor Settings{..} moduleName typeName cap = do
     exists <- doesFileExist goldenFile
     if exists
       then compareWithGolden randomMismatchOption topDir mModuleName typeName cap goldenFile
+        `catch` \(err :: HUnitFailure) -> do
+          doFix <- isJust <$> lookupEnv "RECREATE_BROKEN_GOLDEN"
+          if doFix
+            then createGoldenFile sampleSize cap goldenFile
+            else throwIO err
       else do
         doCreate <- isJust <$> lookupEnv "CREATE_MISSING_GOLDEN"
         if doCreate
