@@ -28,11 +28,13 @@ import qualified Data.Aeson                as A
 import           Data.Aeson.Encode.Pretty
 import           Data.ByteString.Lazy      (writeFile, readFile)
 import           Data.Int                  (Int32)
+import           Data.Maybe                (isJust)
 import           Data.Proxy
 
 import           Prelude            hiding (writeFile,readFile)
 
 import           System.Directory
+import           System.Environment        (lookupEnv)
 import           System.FilePath
 import           System.Random
 
@@ -78,7 +80,11 @@ testConstructor Settings{..} moduleName typeName cap = do
     exists <- doesFileExist goldenFile
     if exists
       then compareWithGolden randomMismatchOption topDir mModuleName typeName cap goldenFile
-      else createGoldenFile sampleSize cap goldenFile
+      else do
+        doCreate <- isJust <$> lookupEnv "CREATE_MISSING_GOLDEN"
+        if doCreate
+          then createGoldenFile sampleSize cap goldenFile
+          else expectationFailure $ "Missing golden file: " <> goldenFile
   where
     goldenFile = mkGoldenFilePath topDir mModuleName typeName cap
     topDir = case goldenDirectoryOption of

@@ -24,12 +24,14 @@ import           Data.Aeson
 import           Data.Aeson.Encode.Pretty
 import           Data.ByteString.Lazy hiding (putStrLn)
 import           Data.Int (Int32)
+import           Data.Maybe (isJust)
 import           Data.Proxy
 import           Data.Typeable
 
 import           Prelude hiding (readFile, writeFile)
 
 import           System.Directory
+import           System.Environment (lookupEnv)
 import           System.FilePath
 import           System.Random
 
@@ -76,7 +78,11 @@ goldenSpecsWithNotePlain settings@Settings{..} typeNameInfo@(TypeNameInfo{typeNa
       exists <- doesFileExist goldenFile
       if exists
         then compareWithGolden typeNameInfo proxy goldenFile comparisonFile
-        else createGoldenfile settings proxy goldenFile
+        else do
+          doCreate <- isJust <$> lookupEnv "CREATE_MISSING_GOLDEN"
+          if doCreate
+            then createGoldenfile settings proxy goldenFile
+            else expectationFailure $ "Missing golden file: " <> goldenFile
 
     
 -- | The golden files already exist. Serialize values with the same seed from
