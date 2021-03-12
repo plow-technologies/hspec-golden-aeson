@@ -32,6 +32,7 @@ library:
   - quickcheck-arbitrary-adt >= 0.3.0.0
   - QuickCheck
   - transformers
+  - HUnit
   ghc-options:
   - -Wall
 #  - -Werror
