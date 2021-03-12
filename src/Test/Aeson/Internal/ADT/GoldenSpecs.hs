@@ -27,6 +27,7 @@ import           Data.Aeson                (ToJSON, FromJSON)
 import qualified Data.Aeson                as A
 import           Data.Aeson.Encode.Pretty
 import           Data.ByteString.Lazy      (writeFile, readFile)
+import           Data.Int                  (Int32)
 import           Data.Proxy
 
 import           Prelude            hiding (writeFile,readFile)
@@ -161,7 +162,7 @@ createGoldenFile :: forall a. (ToJSON a, ToADTArbitrary a) =>
   Int -> ConstructorArbitraryPair a -> FilePath -> IO ()
 createGoldenFile sampleSize cap goldenFile = do
   createDirectoryIfMissing True (takeDirectory goldenFile)
-  rSeed <- randomIO :: IO Int
+  rSeed <- randomIO :: IO Int32
   rSamples <- mkRandomADTSamplesForConstructor sampleSize (Proxy :: Proxy a) (capConstructor cap) rSeed
   writeFile goldenFile $ encodePretty rSamples
 
@@ -202,7 +203,7 @@ mkFaultyReencodedFilePath topDir mModuleName typeName cap =
 -- | Create a number of arbitrary instances of a particular constructor given
 -- a sample size and a random seed.
 mkRandomADTSamplesForConstructor :: forall a. (ToADTArbitrary a) =>
-  Int -> Proxy a -> String -> Int -> IO (RandomSamples a)
+  Int -> Proxy a -> String -> Int32 -> IO (RandomSamples a)
 mkRandomADTSamplesForConstructor sampleSize Proxy conName rSeed = do
   generatedADTs <- generate gen
   let caps         = concat $ adtCAPs <$> generatedADTs
@@ -211,7 +212,7 @@ mkRandomADTSamplesForConstructor sampleSize Proxy conName rSeed = do
   return $ RandomSamples rSeed arbs
   where
     correctedSampleSize = if sampleSize <= 0 then 1 else sampleSize
-    gen = setSeed rSeed $ replicateM correctedSampleSize (toADTArbitrary (Proxy :: Proxy a))
+    gen = setSeed (fromIntegral rSeed) $ replicateM correctedSampleSize (toADTArbitrary (Proxy :: Proxy a))
 
 -- | Make a Golden File for the Proxy of a type if the file does not exist.
 mkGoldenFileForType :: forall a. (ToJSON a, ToADTArbitrary a) => Int -> Proxy a -> FilePath -> IO ()
@@ -225,7 +226,7 @@ mkGoldenFileForType sampleSize Proxy goldenPath = do
           then pure ()
           else do
             createDirectoryIfMissing True (takeDirectory goldenFile)
-            rSeed <- randomIO :: IO Int
+            rSeed <- randomIO :: IO Int32
             rSamples <- mkRandomADTSamplesForConstructor sampleSize (Proxy :: Proxy a) (capConstructor constructor) rSeed
             writeFile goldenFile $ encodePretty rSamples
     ) constructors

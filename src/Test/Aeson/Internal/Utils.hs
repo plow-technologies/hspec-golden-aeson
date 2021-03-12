@@ -74,8 +74,8 @@ addBrackets s =
 -- roundtrip tests.
 shouldBeIdentity :: (Eq a, Show a, Arbitrary a) =>
   Proxy a -> (a -> IO a) -> Property
-shouldBeIdentity Proxy function =
-  property $ \ (a :: a) -> function a `shouldReturn` a
+shouldBeIdentity Proxy func =
+  property $ \ (a :: a) -> func a `shouldReturn` a
 
 -- | This function will compare one JSON encoding to a subsequent JSON encoding, thus eliminating the need for an Eq instance
 checkAesonEncodingEquality :: forall a . (ToJSON a, FromJSON a) => JsonShow a -> Bool
