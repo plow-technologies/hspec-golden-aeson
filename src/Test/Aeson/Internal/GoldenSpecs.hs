@@ -77,13 +77,16 @@ goldenSpecsWithNotePlain settings@Settings{..} typeNameInfo@(TypeNameInfo{typeNa
   describe ("JSON encoding of " ++ addBrackets  (unTypeName typeNameTypeName) ++ note) $
     it ("produces the same JSON as is found in " ++ goldenFile) $ do
       exists <- doesFileExist goldenFile
-      if exists
-        then compareWithGolden typeNameInfo proxy goldenFile comparisonFile
-          `catch` \(err :: HUnitFailure) -> do
+      let fixIfFlag err = do
             doFix <- isJust <$> lookupEnv "RECREATE_BROKEN_GOLDEN"
             if doFix
               then createGoldenfile settings proxy goldenFile
               else throwIO err
+      if exists
+        then compareWithGolden typeNameInfo proxy goldenFile comparisonFile
+          `catches` [ Handler (\(err :: HUnitFailure) -> fixIfFlag err)
+                    , Handler (\(err :: AesonDecodeError) -> fixIfFlag err)
+                    ]
         else do
           doCreate <- isJust <$> lookupEnv "CREATE_MISSING_GOLDEN"
           if doCreate
@@ -102,9 +105,7 @@ compareWithGolden typeNameInfo proxy goldenFile comparisonFile = do
   newSamples <- mkRandomSamples sampleSize proxy goldenSeed
   whenFails (writeComparisonFile newSamples) $ do
     goldenBytes <- readFile goldenFile
-    goldenSamples :: RandomSamples a <-
-      either (throwIO . ErrorCall) return $
-      eitherDecode' goldenBytes
+    goldenSamples :: RandomSamples a <- aesonDecodeIO goldenBytes
     if encode newSamples == encode goldenSamples
       then return ()
       else do

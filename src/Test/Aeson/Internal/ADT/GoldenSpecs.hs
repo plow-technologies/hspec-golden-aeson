@@ -24,7 +24,6 @@ import           Control.Exception
 import           Control.Monad
 
 import           Data.Aeson                (ToJSON, FromJSON)
-import qualified Data.Aeson                as A
 import           Data.Aeson.Encode.Pretty
 import           Data.ByteString.Lazy      (writeFile, readFile)
 import           Data.Int                  (Int32)
@@ -76,16 +75,19 @@ goldenADTSpecsWithNote settings Proxy mNote = do
 -- | test a single set of values from a constructor for a given type.
 testConstructor :: forall a. (Eq a, Show a, FromJSON a, ToJSON a, ToADTArbitrary a) =>
   Settings -> String -> String -> ConstructorArbitraryPair a -> SpecWith ( Arg (IO ()))
-testConstructor Settings{..} moduleName typeName cap = do
+testConstructor Settings{..} moduleName typeName cap =
   it ("produces the same JSON as is found in " ++ goldenFile) $ do
     exists <- doesFileExist goldenFile
-    if exists
-      then compareWithGolden randomMismatchOption topDir mModuleName typeName cap goldenFile
-        `catch` \(err :: HUnitFailure) -> do
+    let fixIfFlag err = do
           doFix <- isJust <$> lookupEnv "RECREATE_BROKEN_GOLDEN"
           if doFix
             then createGoldenFile sampleSize cap goldenFile
             else throwIO err
+    if exists
+      then compareWithGolden randomMismatchOption topDir mModuleName typeName cap goldenFile
+        `catches` [ Handler (\(err :: HUnitFailure) -> fixIfFlag err)
+                  , Handler (\(err :: AesonDecodeError) -> fixIfFlag err)
+                  ]
       else do
         doCreate <- isJust <$> lookupEnv "CREATE_MISSING_GOLDEN"
         if doCreate
@@ -110,9 +112,7 @@ compareWithGolden randomOption topDir mModuleName typeName cap goldenFile = do
   newSamples <- mkRandomADTSamplesForConstructor sampleSize (Proxy :: Proxy a) (capConstructor cap) goldenSeed
   whenFails (writeComparisonFile newSamples) $ do
     goldenBytes <- readFile goldenFile
-    goldenSamples :: RandomSamples a <-
-      either (throwIO . ErrorCall) return $
-      A.eitherDecode' goldenBytes
+    goldenSamples :: RandomSamples a <- aesonDecodeIO goldenBytes
     if newSamples == goldenSamples
       then
         -- random samples match; test encoding of samples (the above check only tested the decoding)
@@ -139,9 +139,7 @@ compareWithGolden randomOption topDir mModuleName typeName cap goldenFile = do
           else do
             -- how significant is the serialization change?
             writeReencodedComparisonFile goldenSamples
-            testSamples :: RandomSamples a <-
-              either (throwIO . ErrorCall) return $
-              A.eitherDecode' reencodedGoldenSamples
+            testSamples :: RandomSamples a <- aesonDecodeIO reencodedGoldenSamples
             let
               failureMessage =
                 if testSamples == goldenSamples
