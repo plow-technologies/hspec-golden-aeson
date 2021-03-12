@@ -23,7 +23,7 @@ import           Control.Monad
 import           Data.Aeson
 import           Data.Aeson.Encode.Pretty
 import           Data.ByteString.Lazy hiding (putStrLn)
-import           Data.Int (Int32)
+import           Data.Int (Int64)
 import           Data.Proxy
 import           Data.Typeable
 
@@ -171,7 +171,7 @@ mkFaultyReencodedFile (TypeNameInfo {typeNameTypeName,typeNameModuleName, typeNa
 -- | Create a number of arbitrary instances of a type
 -- a sample size and a random seed.
 mkRandomSamples :: forall a . Arbitrary a =>
-  Int -> Proxy a -> Int32 -> IO (RandomSamples a)
+  Int -> Proxy a -> Int64 -> IO (RandomSamples a)
 mkRandomSamples sampleSize Proxy rSeed = RandomSamples rSeed <$> generate gen
   where
     correctedSampleSize = if sampleSize <= 0 then 1 else sampleSize
