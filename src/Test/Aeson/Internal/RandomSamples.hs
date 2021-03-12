@@ -18,7 +18,7 @@ import           Control.Exception
 
 import           Data.Aeson
 import           Data.ByteString.Lazy (ByteString)
-import           Data.Int (Int64)
+import           Data.Int (Int32)
 
 import           GHC.Generics
 
@@ -32,7 +32,7 @@ import           Test.QuickCheck.Random
 -- try to reproduce the same samples by generating the arbitraries with a seed.
 
 data RandomSamples a = RandomSamples {
-  seed    :: Int64
+  seed    :: Int32
 , samples :: [a]
 } deriving (Eq, Ord, Show, Generic)
 
@@ -44,7 +44,7 @@ setSeed :: Int -> Gen a -> Gen a
 setSeed rSeed (MkGen g) = MkGen $ \ _randomSeed size -> g (mkQCGen rSeed) size
 
 -- | Reads the seed without looking at the samples.
-readSeed :: ByteString -> IO Int64
+readSeed :: ByteString -> IO Int32
 readSeed s = case eitherDecode s :: Either String (RandomSamples Value) of
   Right rSamples -> return $ seed rSamples
   Left err -> throwIO $ ErrorCall err

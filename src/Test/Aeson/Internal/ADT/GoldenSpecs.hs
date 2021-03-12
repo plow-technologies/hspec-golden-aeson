@@ -27,7 +27,7 @@ import           Data.Aeson                (ToJSON, FromJSON)
 import qualified Data.Aeson                as A
 import           Data.Aeson.Encode.Pretty
 import           Data.ByteString.Lazy      (writeFile, readFile)
-import           Data.Int                  (Int32, Int64)
+import           Data.Int                  (Int32)
 import           Data.Proxy
 
 import           Prelude            hiding (writeFile,readFile)
@@ -162,9 +162,7 @@ createGoldenFile :: forall a. (ToJSON a, ToADTArbitrary a) =>
   Int -> ConstructorArbitraryPair a -> FilePath -> IO ()
 createGoldenFile sampleSize cap goldenFile = do
   createDirectoryIfMissing True (takeDirectory goldenFile)
-  -- we generare the seed as Int32 and cast to Int64 so golden files are
-  -- always portable to a 32bit arch without overflow
-  rSeed :: Int64 <- fromIntegral <$> (randomIO :: IO Int32)
+  rSeed <- randomIO :: IO Int32
   rSamples <- mkRandomADTSamplesForConstructor sampleSize (Proxy :: Proxy a) (capConstructor cap) rSeed
   writeFile goldenFile $ encodePretty rSamples
 
@@ -205,7 +203,7 @@ mkFaultyReencodedFilePath topDir mModuleName typeName cap =
 -- | Create a number of arbitrary instances of a particular constructor given
 -- a sample size and a random seed.
 mkRandomADTSamplesForConstructor :: forall a. (ToADTArbitrary a) =>
-  Int -> Proxy a -> String -> Int64 -> IO (RandomSamples a)
+  Int -> Proxy a -> String -> Int32 -> IO (RandomSamples a)
 mkRandomADTSamplesForConstructor sampleSize Proxy conName rSeed = do
   generatedADTs <- generate gen
   let caps         = concat $ adtCAPs <$> generatedADTs
@@ -228,9 +226,7 @@ mkGoldenFileForType sampleSize Proxy goldenPath = do
           then pure ()
           else do
             createDirectoryIfMissing True (takeDirectory goldenFile)
-            -- we generare the seed as Int32 and cast to Int64 so golden files are
-            -- always portable to a 32bit arch without overflow
-            rSeed :: Int64 <- fromIntegral <$> (randomIO :: IO Int32)
+            rSeed <- randomIO :: IO Int32
             rSamples <- mkRandomADTSamplesForConstructor sampleSize (Proxy :: Proxy a) (capConstructor constructor) rSeed
             writeFile goldenFile $ encodePretty rSamples
     ) constructors
