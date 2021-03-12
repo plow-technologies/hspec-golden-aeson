@@ -23,18 +23,22 @@ import           Control.Monad
 import           Data.Aeson
 import           Data.Aeson.Encode.Pretty
 import           Data.ByteString.Lazy hiding (putStrLn)
+import           Data.Int (Int32)
+import           Data.Maybe (isJust)
 import           Data.Proxy
 import           Data.Typeable
 
 import           Prelude hiding (readFile, writeFile)
 
 import           System.Directory
+import           System.Environment (lookupEnv)
 import           System.FilePath
 import           System.Random
 
 import           Test.Aeson.Internal.RandomSamples
 import           Test.Aeson.Internal.Utils
 import           Test.Hspec
+import           Test.HUnit.Lang (HUnitFailure)
 import           Test.QuickCheck
 
 -- | Tests to ensure that JSON encoding has not unintentionally changed. This
@@ -73,9 +77,21 @@ goldenSpecsWithNotePlain settings@Settings{..} typeNameInfo@(TypeNameInfo{typeNa
   describe ("JSON encoding of " ++ addBrackets  (unTypeName typeNameTypeName) ++ note) $
     it ("produces the same JSON as is found in " ++ goldenFile) $ do
       exists <- doesFileExist goldenFile
+      let fixIfFlag err = do
+            doFix <- isJust <$> lookupEnv "RECREATE_BROKEN_GOLDEN"
+            if doFix
+              then createGoldenfile settings proxy goldenFile
+              else throwIO err
       if exists
         then compareWithGolden typeNameInfo proxy goldenFile comparisonFile
-        else createGoldenfile settings proxy goldenFile
+          `catches` [ Handler (\(err :: HUnitFailure) -> fixIfFlag err)
+                    , Handler (\(err :: AesonDecodeError) -> fixIfFlag err)
+                    ]
+        else do
+          doCreate <- isJust <$> lookupEnv "CREATE_MISSING_GOLDEN"
+          if doCreate
+            then createGoldenfile settings proxy goldenFile
+            else expectationFailure $ "Missing golden file: " <> goldenFile
 
     
 -- | The golden files already exist. Serialize values with the same seed from
@@ -89,9 +105,7 @@ compareWithGolden typeNameInfo proxy goldenFile comparisonFile = do
   newSamples <- mkRandomSamples sampleSize proxy goldenSeed
   whenFails (writeComparisonFile newSamples) $ do
     goldenBytes <- readFile goldenFile
-    goldenSamples :: RandomSamples a <-
-      either (throwIO . ErrorCall) return $
-      eitherDecode' goldenBytes
+    goldenSamples :: RandomSamples a <- aesonDecodeIO goldenBytes
     if encode newSamples == encode goldenSamples
       then return ()
       else do
@@ -170,9 +184,9 @@ mkFaultyReencodedFile (TypeNameInfo {typeNameTypeName,typeNameModuleName, typeNa
 -- | Create a number of arbitrary instances of a type
 -- a sample size and a random seed.
 mkRandomSamples :: forall a . Arbitrary a =>
-  Int -> Proxy a -> Int -> IO (RandomSamples a)
+  Int -> Proxy a -> Int32 -> IO (RandomSamples a)
 mkRandomSamples sampleSize Proxy rSeed = RandomSamples rSeed <$> generate gen
   where
     correctedSampleSize = if sampleSize <= 0 then 1 else sampleSize
     gen :: Gen [a]
-    gen = setSeed rSeed $ replicateM correctedSampleSize (arbitrary :: Gen a)
+    gen = setSeed (fromIntegral rSeed) $ replicateM correctedSampleSize (arbitrary :: Gen a)

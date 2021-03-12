@@ -74,8 +74,8 @@ addBrackets s =
 -- roundtrip tests.
 shouldBeIdentity :: (Eq a, Show a, Arbitrary a) =>
   Proxy a -> (a -> IO a) -> Property
-shouldBeIdentity Proxy function =
-  property $ \ (a :: a) -> function a `shouldReturn` a
+shouldBeIdentity Proxy func =
+  property $ \ (a :: a) -> func a `shouldReturn` a
 
 -- | This function will compare one JSON encoding to a subsequent JSON encoding, thus eliminating the need for an Eq instance
 checkAesonEncodingEquality :: forall a . (ToJSON a, FromJSON a) => JsonShow a -> Bool
@@ -89,8 +89,12 @@ checkAesonEncodingEquality (JsonShow a) =
 aesonDecodeIO :: FromJSON a => ByteString -> IO a
 aesonDecodeIO bs = case eitherDecode bs of
   Right a -> return a
-  Left msg -> throwIO $ ErrorCall
-    ("aeson couldn't parse value: " ++ msg)
+  Left msg -> throwIO $ AesonDecodeError msg
+
+data AesonDecodeError = AesonDecodeError String
+  deriving (Show, Eq)
+
+instance Exception AesonDecodeError
 
 -- | Used to eliminate the need for an Eq instance
 newtype JsonShow a = JsonShow a 

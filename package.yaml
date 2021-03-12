@@ -1,5 +1,5 @@
 name: hspec-golden-aeson
-version: 0.7.0.0
+version: 0.8.0.0
 synopsis: Use tests to monitor changes in Aeson serialization
 description: Use tests to monitor changes in Aeson serialization
 category: Testing
@@ -32,6 +32,7 @@ library:
   - quickcheck-arbitrary-adt >= 0.3.0.0
   - QuickCheck
   - transformers
+  - HUnit
   ghc-options:
   - -Wall
 #  - -Werror

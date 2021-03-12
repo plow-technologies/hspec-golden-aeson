@@ -24,20 +24,23 @@ import           Control.Exception
 import           Control.Monad
 
 import           Data.Aeson                (ToJSON, FromJSON)
-import qualified Data.Aeson                as A
 import           Data.Aeson.Encode.Pretty
 import           Data.ByteString.Lazy      (writeFile, readFile)
+import           Data.Int                  (Int32)
+import           Data.Maybe                (isJust)
 import           Data.Proxy
 
 import           Prelude            hiding (writeFile,readFile)
 
 import           System.Directory
+import           System.Environment        (lookupEnv)
 import           System.FilePath
 import           System.Random
 
 import           Test.Aeson.Internal.RandomSamples
 import           Test.Aeson.Internal.Utils
 import           Test.Hspec
+import           Test.HUnit.Lang (HUnitFailure)
 import           Test.QuickCheck
 import           Test.QuickCheck.Arbitrary.ADT
 
@@ -72,12 +75,24 @@ goldenADTSpecsWithNote settings Proxy mNote = do
 -- | test a single set of values from a constructor for a given type.
 testConstructor :: forall a. (Eq a, Show a, FromJSON a, ToJSON a, ToADTArbitrary a) =>
   Settings -> String -> String -> ConstructorArbitraryPair a -> SpecWith ( Arg (IO ()))
-testConstructor Settings{..} moduleName typeName cap = do
+testConstructor Settings{..} moduleName typeName cap =
   it ("produces the same JSON as is found in " ++ goldenFile) $ do
     exists <- doesFileExist goldenFile
+    let fixIfFlag err = do
+          doFix <- isJust <$> lookupEnv "RECREATE_BROKEN_GOLDEN"
+          if doFix
+            then createGoldenFile sampleSize cap goldenFile
+            else throwIO err
     if exists
       then compareWithGolden randomMismatchOption topDir mModuleName typeName cap goldenFile
-      else createGoldenFile sampleSize cap goldenFile
+        `catches` [ Handler (\(err :: HUnitFailure) -> fixIfFlag err)
+                  , Handler (\(err :: AesonDecodeError) -> fixIfFlag err)
+                  ]
+      else do
+        doCreate <- isJust <$> lookupEnv "CREATE_MISSING_GOLDEN"
+        if doCreate
+          then createGoldenFile sampleSize cap goldenFile
+          else expectationFailure $ "Missing golden file: " <> goldenFile
   where
     goldenFile = mkGoldenFilePath topDir mModuleName typeName cap
     topDir = case goldenDirectoryOption of
@@ -97,9 +112,7 @@ compareWithGolden randomOption topDir mModuleName typeName cap goldenFile = do
   newSamples <- mkRandomADTSamplesForConstructor sampleSize (Proxy :: Proxy a) (capConstructor cap) goldenSeed
   whenFails (writeComparisonFile newSamples) $ do
     goldenBytes <- readFile goldenFile
-    goldenSamples :: RandomSamples a <-
-      either (throwIO . ErrorCall) return $
-      A.eitherDecode' goldenBytes
+    goldenSamples :: RandomSamples a <- aesonDecodeIO goldenBytes
     if newSamples == goldenSamples
       then
         -- random samples match; test encoding of samples (the above check only tested the decoding)
@@ -126,9 +139,7 @@ compareWithGolden randomOption topDir mModuleName typeName cap goldenFile = do
           else do
             -- how significant is the serialization change?
             writeReencodedComparisonFile goldenSamples
-            testSamples :: RandomSamples a <-
-              either (throwIO . ErrorCall) return $
-              A.eitherDecode' reencodedGoldenSamples
+            testSamples :: RandomSamples a <- aesonDecodeIO reencodedGoldenSamples
             let
               failureMessage =
                 if testSamples == goldenSamples
@@ -161,7 +172,7 @@ createGoldenFile :: forall a. (ToJSON a, ToADTArbitrary a) =>
   Int -> ConstructorArbitraryPair a -> FilePath -> IO ()
 createGoldenFile sampleSize cap goldenFile = do
   createDirectoryIfMissing True (takeDirectory goldenFile)
-  rSeed <- randomIO :: IO Int
+  rSeed <- randomIO :: IO Int32
   rSamples <- mkRandomADTSamplesForConstructor sampleSize (Proxy :: Proxy a) (capConstructor cap) rSeed
   writeFile goldenFile $ encodePretty rSamples
 
@@ -202,7 +213,7 @@ mkFaultyReencodedFilePath topDir mModuleName typeName cap =
 -- | Create a number of arbitrary instances of a particular constructor given
 -- a sample size and a random seed.
 mkRandomADTSamplesForConstructor :: forall a. (ToADTArbitrary a) =>
-  Int -> Proxy a -> String -> Int -> IO (RandomSamples a)
+  Int -> Proxy a -> String -> Int32 -> IO (RandomSamples a)
 mkRandomADTSamplesForConstructor sampleSize Proxy conName rSeed = do
   generatedADTs <- generate gen
   let caps         = concat $ adtCAPs <$> generatedADTs
@@ -211,7 +222,7 @@ mkRandomADTSamplesForConstructor sampleSize Proxy conName rSeed = do
   return $ RandomSamples rSeed arbs
   where
     correctedSampleSize = if sampleSize <= 0 then 1 else sampleSize
-    gen = setSeed rSeed $ replicateM correctedSampleSize (toADTArbitrary (Proxy :: Proxy a))
+    gen = setSeed (fromIntegral rSeed) $ replicateM correctedSampleSize (toADTArbitrary (Proxy :: Proxy a))
 
 -- | Make a Golden File for the Proxy of a type if the file does not exist.
 mkGoldenFileForType :: forall a. (ToJSON a, ToADTArbitrary a) => Int -> Proxy a -> FilePath -> IO ()
@@ -225,7 +236,7 @@ mkGoldenFileForType sampleSize Proxy goldenPath = do
           then pure ()
           else do
             createDirectoryIfMissing True (takeDirectory goldenFile)
-            rSeed <- randomIO :: IO Int
+            rSeed <- randomIO :: IO Int32
             rSamples <- mkRandomADTSamplesForConstructor sampleSize (Proxy :: Proxy a) (capConstructor constructor) rSeed
             writeFile goldenFile $ encodePretty rSamples
     ) constructors
