@@ -9,6 +9,9 @@ copyright: 2016 Plow Technologies
 license: BSD3
 homepage: https://github.com/plow-technologies/hspec-golden-aeson#readme
 github: plow-technologies/hspec-golden-aeson
+extra-source-files:
+  - README.md
+  - ChangeLog.md
 
 library:
   source-dirs: src
