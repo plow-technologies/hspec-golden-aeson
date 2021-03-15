@@ -16,6 +16,7 @@ module Test.Aeson.Internal.Utils where
 import           Control.Exception
 
 import           Data.Aeson
+import           Data.Aeson.Encode.Pretty
 import           Data.ByteString.Lazy (ByteString)
 import           Data.Proxy
 import           Data.Typeable
@@ -157,3 +158,6 @@ mkTypeNameInfo (Settings { useModuleNameAsSubDirectory
      case goldenDirectoryOption of
        GoldenDirectory -> "golden"
        CustomDirectoryName d -> d
+
+encodePrettySortedKeys :: ToJSON a => a -> ByteString
+encodePrettySortedKeys = encodePretty' defConfig { confCompare = compare }

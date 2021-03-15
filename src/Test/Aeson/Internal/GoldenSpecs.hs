@@ -21,7 +21,6 @@ import           Control.Exception
 import           Control.Monad
 
 import           Data.Aeson
-import           Data.Aeson.Encode.Pretty
 import           Data.ByteString.Lazy hiding (putStrLn)
 import           Data.Int (Int32)
 import           Data.Maybe (isJust)
@@ -106,7 +105,7 @@ compareWithGolden typeNameInfo proxy goldenFile comparisonFile = do
   whenFails (writeComparisonFile newSamples) $ do
     goldenBytes <- readFile goldenFile
     goldenSamples :: RandomSamples a <- aesonDecodeIO goldenBytes
-    if encode newSamples == encode goldenSamples
+    if encodePrettySortedKeys newSamples == encodePrettySortedKeys goldenSamples
       then return ()
       else do
         -- fallback to testing roundtrip decoding/encoding of golden file
@@ -114,7 +113,7 @@ compareWithGolden typeNameInfo proxy goldenFile comparisonFile = do
           "\n" ++
           "WARNING: Encoding new random samples do not match " ++ goldenFile ++ ".\n" ++
           "  Testing round-trip decoding/encoding of golden file."
-        if encodePretty goldenSamples == goldenBytes
+        if encodePrettySortedKeys goldenSamples == goldenBytes
           then return ()
           else do
             writeReencodedComparisonFile goldenSamples
@@ -128,12 +127,12 @@ compareWithGolden typeNameInfo proxy goldenFile comparisonFile = do
         OverwriteGoldenFile -> goldenFile
     faultyReencodedFilePath = mkFaultyReencodedFile typeNameInfo
     writeComparisonFile newSamples = do
-      writeFile filePath (encodePretty newSamples)
+      writeFile filePath (encodePrettySortedKeys newSamples)
       putStrLn $
         "\n" ++
         "INFO: Written the current encodings into " ++ filePath ++ "."
     writeReencodedComparisonFile samples = do
-      writeFile faultyReencodedFilePath (encodePretty samples)
+      writeFile faultyReencodedFilePath (encodePrettySortedKeys samples)
       putStrLn $
         "\n" ++
         "INFO: Written the reencoded goldenFile into " ++ faultyReencodedFilePath ++ "."
@@ -145,7 +144,7 @@ createGoldenfile Settings{..} proxy goldenFile = do
   createDirectoryIfMissing True (takeDirectory goldenFile)
   rSeed <- randomIO
   rSamples <- mkRandomSamples sampleSize proxy rSeed
-  writeFile goldenFile (encodePretty rSamples)
+  writeFile goldenFile (encodePrettySortedKeys rSamples)
 
   putStrLn $
     "\n" ++

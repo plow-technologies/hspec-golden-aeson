@@ -24,7 +24,6 @@ import           Control.Exception
 import           Control.Monad
 
 import           Data.Aeson                (ToJSON, FromJSON)
-import           Data.Aeson.Encode.Pretty
 import           Data.ByteString.Lazy      (writeFile, readFile)
 import           Data.Int                  (Int32)
 import           Data.Maybe                (isJust)
@@ -116,7 +115,7 @@ compareWithGolden randomOption topDir mModuleName typeName cap goldenFile = do
     if newSamples == goldenSamples
       then
         -- random samples match; test encoding of samples (the above check only tested the decoding)
-        encodePretty newSamples == goldenBytes `shouldBe` True
+        encodePrettySortedKeys newSamples == goldenBytes `shouldBe` True
       else do
         let
           -- whether to pass the test or fail due to random value mismatch
@@ -131,7 +130,7 @@ compareWithGolden randomOption topDir mModuleName typeName cap goldenFile = do
           "\n" ++
           "WARNING: New random samples do not match those in " ++ goldenFile ++ ".\n" ++
           "  Testing round-trip decoding/encoding of golden file."
-        let reencodedGoldenSamples = encodePretty goldenSamples
+        let reencodedGoldenSamples = encodePrettySortedKeys goldenSamples
         if reencodedGoldenSamples == goldenBytes
           then
             -- pass the test because round-trip decode/encode still gives the same bytes
@@ -157,12 +156,12 @@ compareWithGolden randomOption topDir mModuleName typeName cap goldenFile = do
     faultyReencodedFile = mkFaultyReencodedFilePath topDir mModuleName typeName cap
 
     writeComparisonFile newSamples = do
-      writeFile faultyFile (encodePretty newSamples)
+      writeFile faultyFile (encodePrettySortedKeys newSamples)
       putStrLn $
         "\n" ++
         "INFO: Written the current encodings into " ++ faultyFile ++ "."
     writeReencodedComparisonFile samples = do
-      writeFile faultyReencodedFile (encodePretty samples)
+      writeFile faultyReencodedFile (encodePrettySortedKeys samples)
       putStrLn $
         "\n" ++
         "INFO: Written the re-encodings into " ++ faultyReencodedFile ++ "."
@@ -174,7 +173,7 @@ createGoldenFile sampleSize cap goldenFile = do
   createDirectoryIfMissing True (takeDirectory goldenFile)
   rSeed <- randomIO :: IO Int32
   rSamples <- mkRandomADTSamplesForConstructor sampleSize (Proxy :: Proxy a) (capConstructor cap) rSeed
-  writeFile goldenFile $ encodePretty rSamples
+  writeFile goldenFile $ encodePrettySortedKeys rSamples
 
   putStrLn $
     "\n" ++
@@ -238,5 +237,5 @@ mkGoldenFileForType sampleSize Proxy goldenPath = do
             createDirectoryIfMissing True (takeDirectory goldenFile)
             rSeed <- randomIO :: IO Int32
             rSamples <- mkRandomADTSamplesForConstructor sampleSize (Proxy :: Proxy a) (capConstructor constructor) rSeed
-            writeFile goldenFile $ encodePretty rSamples
+            writeFile goldenFile $ encodePrettySortedKeys rSamples
     ) constructors

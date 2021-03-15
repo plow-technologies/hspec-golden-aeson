@@ -1,5 +1,9 @@
 # Revision history for hspec-golden-aeson
 
+## 0.9.0.0 -- 2021-03-15
+* Breaking change: Objects are now serialized with sorted keys for better
+  cross-platform compatibility
+
 ## 0.8.0.0 -- 2021-03-12
 
 * Breaking change: Seed is now an `Int32` so golden files are more portable. This
