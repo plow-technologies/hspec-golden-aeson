@@ -15,6 +15,7 @@ Internal module, use at your own risk.
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeApplications #-}
 module Test.Aeson.Internal.GoldenSpecs where
 
 import           Control.Exception
@@ -98,44 +99,59 @@ goldenSpecsWithNotePlain settings@Settings{..} typeNameInfo@(TypeNameInfo{typeNa
 compareWithGolden :: forall a .
   ( Arbitrary a, ToJSON a, FromJSON a) =>
   TypeNameInfo a ->  Proxy a  -> FilePath -> ComparisonFile ->IO ()
-compareWithGolden typeNameInfo proxy goldenFile comparisonFile = do
-  goldenSeed <- readSeed =<< readFile goldenFile
-  sampleSize <- readSampleSize =<< readFile goldenFile
-  newSamples <- mkRandomSamples sampleSize proxy goldenSeed
-  whenFails (writeComparisonFile newSamples) $ do
-    goldenBytes <- readFile goldenFile
-    goldenSamples :: RandomSamples a <- aesonDecodeIO goldenBytes
-    if encodePrettySortedKeys newSamples == encodePrettySortedKeys goldenSamples
-      then return ()
-      else do
-        -- fallback to testing roundtrip decoding/encoding of golden file
-        putStrLn $
-          "\n" ++
-          "WARNING: Encoding new random samples do not match " ++ goldenFile ++ ".\n" ++
-          "  Testing round-trip decoding/encoding of golden file."
-        if encodePrettySortedKeys goldenSamples == goldenBytes
-          then return ()
-          else do
-            writeReencodedComparisonFile goldenSamples
-            expectationFailure $ "Serialization has changed. Compare golden file with " ++ faultyReencodedFilePath ++ "."
-  where
-    whenFails :: forall b c . IO c -> IO b -> IO b
-    whenFails = flip onException
-    filePath =
-      case comparisonFile of
-        FaultyFile -> mkFaultyFile typeNameInfo
-        OverwriteGoldenFile -> goldenFile
-    faultyReencodedFilePath = mkFaultyReencodedFile typeNameInfo
-    writeComparisonFile newSamples = do
-      writeFile filePath (encodePrettySortedKeys newSamples)
-      putStrLn $
-        "\n" ++
-        "INFO: Written the current encodings into " ++ filePath ++ "."
-    writeReencodedComparisonFile samples = do
-      writeFile faultyReencodedFilePath (encodePrettySortedKeys samples)
-      putStrLn $
-        "\n" ++
-        "INFO: Written the reencoded goldenFile into " ++ faultyReencodedFilePath ++ "."
+compareWithGolden _typeNameInfo _proxy goldenFile _comparisonFile = do
+  _goldenSeed <- readSeed =<< readFile goldenFile
+  _sampleSize <- readSampleSize =<< readFile goldenFile
+  goldenBytes <- readFile goldenFile
+  goldenSamples :: RandomSamples a <- aesonDecodeIO goldenBytes
+
+  -- let e = encodePrettySortedKeys goldenSamples
+  -- let d = 
+  let byteStrA = encode goldenSamples
+      decodedVal =  (eitherDecode byteStrA) :: Either String a
+      eitherByteStrB = encode <$> decodedVal  
+
+  (Right byteStrA) `shouldBe` eitherByteStrB
+  
+  -- let eitherGoldenFile = decodeGoldenFile @a goldenFile
+  -- let recodedGoldenFile = join (encodeGoldenFile `traverse` eitherGoldenFile)
+  -- eitherGoldenFile `shouldBe` recodedGoldenFile
+  
+  -- newSamples <- mkRandomSamples sampleSize proxy goldenSeed
+  -- whenFails (writeComparisonFile newSamples) $ do
+  --   goldenBytes <- readFile goldenFile
+  --   goldenSamples :: RandomSamples a <- aesonDecodeIO goldenBytes
+  --   if encodePrettySortedKeys newSamples == encodePrettySortedKeys goldenSamples
+  --     then return ()
+  --     else do
+  --       -- fallback to testing roundtrip decoding/encoding of golden file
+  --       putStrLn $
+  --         "\n" ++
+  --         "WARNING: Encoding new random samples do not match " ++ goldenFile ++ ".\n" ++
+  --         "  Testing round-trip decoding/encoding of golden file."
+  --       if encodePrettySortedKeys goldenSamples == goldenBytes
+  --         then return ()
+  --         else do
+  --           writeReencodedComparisonFile goldenSamples
+  --           expectationFailure $ "Serialization has changed. Compare golden file with " ++ faultyReencodedFilePath ++ "."
+  -- where
+  --   whenFails :: forall b c . IO c -> IO b -> IO b
+  --   whenFails = flip onException
+  --   filePath =
+  --     case comparisonFile of
+  --       FaultyFile -> mkFaultyFile typeNameInfo
+  --       OverwriteGoldenFile -> goldenFile
+  --   faultyReencodedFilePath = mkFaultyReencodedFile typeNameInfo
+  --   writeComparisonFile newSamples = do
+  --     writeFile filePath (encodePrettySortedKeys newSamples)
+  --     putStrLn $
+  --       "\n" ++
+  --       "INFO: Written the current encodings into " ++ filePath ++ "."
+  --   writeReencodedComparisonFile samples = do
+  --     writeFile faultyReencodedFilePath (encodePrettySortedKeys samples)
+  --     putStrLn $
+  --       "\n" ++
+  --       "INFO: Written the reencoded goldenFile into " ++ faultyReencodedFilePath ++ "."
 
 -- | The golden files do not exist. Create it.
 createGoldenfile :: forall a . (Arbitrary a, ToJSON a) =>

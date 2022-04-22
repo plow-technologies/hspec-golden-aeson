@@ -5,6 +5,7 @@ module Test.Aeson.GenericSpecsSpec where
 import           Data.Proxy
 
 import           System.Directory
+import           System.Environment (setEnv)
 
 import           Test.Aeson.GenericSpecs
 import           Test.Aeson.Internal.Utils (RandomMismatchOption(..))
@@ -24,6 +25,8 @@ import qualified Test.Types.NewSelector         as TNS
 -- summaryFailures
 spec :: Spec
 spec = do
+  runIO $ setEnv "CREATE_MISSING_GOLDEN" "true"
+  
   describe "Test.Aeson.GenericSpecs: roundtripSpecs" $ do
     it "should pass when ToJSON and FromJSON are defined appropriately" $ do
       (s1,_) <- hspecSilently $ roundtripSpecs (Proxy :: Proxy T.Person)
@@ -51,7 +54,7 @@ spec = do
         else return ()
 
       -- files for Person and SumType do not exist
-      -- create them by running goldenADTSpecs
+      -- create them by running goldenSpecs
       _ <- hspecSilently $ goldenSpecs defaultSettings (Proxy :: Proxy T.Person)
       _ <- hspecSilently $ goldenSpecs defaultSettings (Proxy :: Proxy T.SumType)
 
@@ -66,7 +69,7 @@ spec = do
         else return ()
 
       -- files for Person and SumType do not exist
-      -- create them by running goldenADTSpecs
+      -- create them by running goldenSpecs
       _ <- hspecSilently $ goldenSpecs (defaultSettings { useModuleNameAsSubDirectory = True }) (Proxy :: Proxy T.Person)
       _ <- hspecSilently $ goldenSpecs (defaultSettings { useModuleNameAsSubDirectory = True }) (Proxy :: Proxy T.SumType)
 
@@ -82,27 +85,27 @@ spec = do
         else return ()
 
       -- files for Person and SumType do not exist
-      -- create them by running goldenADTSpecs
+      -- create them by running goldenSpecs
       _ <- hspecSilently $ goldenSpecs (defaultSettings {goldenDirectoryOption = CustomDirectoryName topDir}) (Proxy :: Proxy T.Person)
       _ <- hspecSilently $ goldenSpecs (defaultSettings {goldenDirectoryOption = CustomDirectoryName topDir}) (Proxy :: Proxy T.SumType)
 
       doesFileExist "json-tests/Person.json"  `shouldReturn` True
       doesFileExist "json-tests/SumType.json" `shouldReturn` True
 
-    it "goldenADTSpecs should pass for existing golden files in which model types and serialization have not changed" $ do
+    it "goldenSpecs should pass for existing golden files in which model types and serialization have not changed" $ do
       (s1,_) <- hspecSilently $ goldenSpecs defaultSettings (Proxy :: Proxy T.Person)
       (s2,_) <- hspecSilently $ goldenSpecs defaultSettings (Proxy :: Proxy T.SumType)
       (summaryFailures s1 + summaryFailures s2) `shouldBe` 0
 
-    it "goldenADTSpecs for types which have changed the values of ToJSON or FromJSON keys should fail to match the goldenFiles" $ do
+    it "goldenSpecs for types which have changed the values of ToJSON or FromJSON keys should fail to match the goldenFiles" $ do
       (s1,_) <- hspecSilently $ goldenSpecs defaultSettings (Proxy :: Proxy TBS.Person)
       summaryFailures s1 `shouldBe` 1
 
-    it "goldenADTSpecs for types which have changed the values of ToJSON or FromJSON keys should fail to match the goldenFiles" $ do
+    it "goldenSpecs for types which have changed the values of ToJSON or FromJSON keys should fail to match the goldenFiles" $ do
       (s1,_) <- hspecSilently $ goldenSpecs defaultSettings (Proxy :: Proxy TNS.Person)
       summaryFailures s1 `shouldBe` 1
 
-    it "goldenADTSpecs for types which have altered the name of the selector and using generic implementation of ToJSON and FromJSON should fail to match the goldenFiles" $ do
+    it "goldenSpecs for types which have altered the name of the selector and using generic implementation of ToJSON and FromJSON should fail to match the goldenFiles" $ do
       (s1,_) <- hspecSilently $ goldenSpecs defaultSettings (Proxy :: Proxy TAS.Person)
       summaryFailures s1 `shouldBe` 1
 
@@ -156,7 +159,9 @@ spec = do
       doesFileExist "json-tests/SumType/SumType3.json" `shouldReturn` True
 
     it "goldenADTSpecs should pass for existing golden files in which model types and serialization have not changed" $ do
-      (s1,_) <- hspecSilently $ goldenADTSpecs defaultSettings (Proxy :: Proxy T.Person)
+      (s1,z) <- hspecSilently $ goldenADTSpecs defaultSettings (Proxy :: Proxy T.Person)
+      print s1
+      print z
       (s2,_) <- hspecSilently $ goldenADTSpecs defaultSettings (Proxy :: Proxy T.SumType)
       (summaryFailures s1 + summaryFailures s2) `shouldBe` 0
 
@@ -244,6 +249,7 @@ spec = do
       writeFile "golden/Person/Person.json" goldenByteIdentical
 
       (s1,_) <- hspecSilently $ goldenADTSpecs defaultSettings (Proxy :: Proxy T.Person)
+      print s1
       summaryFailures s1 `shouldBe` 0
 
     it "different random seed but byte-for-byte identical should fail (with custom setting)" $ do
