@@ -64,12 +64,15 @@ goldenADTSpecs settings proxy = goldenADTSpecsWithNote settings proxy Nothing
 -- 'describe' function.
 goldenADTSpecsWithNote :: forall a. (ToADTArbitrary a, Eq a, Show a, ToJSON a, FromJSON a) =>
   Settings -> Proxy a -> Maybe String -> Spec
-goldenADTSpecsWithNote settings Proxy mNote = do
-  (moduleName,(typeName,constructors)) <- runIO $ fmap (adtModuleName &&& adtTypeName &&& adtCAPs) <$> generate $ toADTArbitrary (Proxy :: Proxy a)
+goldenADTSpecsWithNote settings proxy mNote = do
+  (moduleName,typeName,constructors) <- runIO $ generateInfoFromADT proxy
   describe ("JSON encoding of " ++ typeName ++ note) $
     mapM_ (testConstructor settings moduleName typeName) constructors
   where
     note = maybe "" (" " ++) mNote
+
+generateInfoFromADT :: ToADTArbitrary a => Proxy a -> IO (String, String, [ConstructorArbitraryPair a])
+generateInfoFromADT proxy = fmap (\x -> (adtModuleName x, adtTypeName x, adtCAPs x)) <$> generate $ toADTArbitrary proxy
 
 -- | test a single set of values from a constructor for a given type.
 testConstructor :: forall a. (Eq a, Show a, FromJSON a, ToJSON a, ToADTArbitrary a) =>
@@ -91,7 +94,7 @@ testConstructor Settings{..} moduleName typeName cap =
         doCreate <- isJust <$> lookupEnv "CREATE_MISSING_GOLDEN"
         if doCreate
           then createGoldenFile sampleSize cap goldenFile
-          else expectationFailure $ "Missing golden file: " <> goldenFile
+          else expectationFailure $ "Missing golden file: " ++ goldenFile
   where
     goldenFile = mkGoldenFilePath topDir mModuleName typeName cap
     topDir = case goldenDirectoryOption of

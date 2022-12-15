@@ -82,27 +82,27 @@ spec = do
         else return ()
 
       -- files for Person and SumType do not exist
-      -- create them by running goldenADTSpecs
+      -- create them by running goldenSpecs
       _ <- hspecSilently $ goldenSpecs (defaultSettings {goldenDirectoryOption = CustomDirectoryName topDir}) (Proxy :: Proxy T.Person)
       _ <- hspecSilently $ goldenSpecs (defaultSettings {goldenDirectoryOption = CustomDirectoryName topDir}) (Proxy :: Proxy T.SumType)
 
       doesFileExist "json-tests/Person.json"  `shouldReturn` True
       doesFileExist "json-tests/SumType.json" `shouldReturn` True
 
-    it "goldenADTSpecs should pass for existing golden files in which model types and serialization have not changed" $ do
+    it "goldenSpecs should pass for existing golden files in which model types and serialization have not changed" $ do
       (s1,_) <- hspecSilently $ goldenSpecs defaultSettings (Proxy :: Proxy T.Person)
       (s2,_) <- hspecSilently $ goldenSpecs defaultSettings (Proxy :: Proxy T.SumType)
       (summaryFailures s1 + summaryFailures s2) `shouldBe` 0
 
-    it "goldenADTSpecs for types which have changed the values of ToJSON or FromJSON keys should fail to match the goldenFiles" $ do
+    it "goldenSpecs for types which have changed the values of ToJSON or FromJSON keys should fail to match the goldenFiles" $ do
       (s1,_) <- hspecSilently $ goldenSpecs defaultSettings (Proxy :: Proxy TBS.Person)
       summaryFailures s1 `shouldBe` 1
 
-    it "goldenADTSpecs for types which have changed the values of ToJSON or FromJSON keys should fail to match the goldenFiles" $ do
+    it "goldenSpecs for types which have changed the values of ToJSON or FromJSON keys should fail to match the goldenFiles" $ do
       (s1,_) <- hspecSilently $ goldenSpecs defaultSettings (Proxy :: Proxy TNS.Person)
       summaryFailures s1 `shouldBe` 1
 
-    it "goldenADTSpecs for types which have altered the name of the selector and using generic implementation of ToJSON and FromJSON should fail to match the goldenFiles" $ do
+    it "goldenSpecs for types which have altered the name of the selector and using generic implementation of ToJSON and FromJSON should fail to match the goldenFiles" $ do
       (s1,_) <- hspecSilently $ goldenSpecs defaultSettings (Proxy :: Proxy TAS.Person)
       summaryFailures s1 `shouldBe` 1
 
@@ -284,6 +284,41 @@ spec = do
       doesFileExist "golden/SumType/SumType1.json" `shouldReturn` True
       doesFileExist "golden/SumType/SumType2.json" `shouldReturn` True
       doesFileExist "golden/SumType/SumType3.json" `shouldReturn` True
+
+  describe "roundtripFromFile" $ do
+    it "Should pass if serialization is OK" $ do
+      (s1,_) <- hspecSilently $ roundtripFromFile (Proxy :: Proxy T.Person)
+      summaryFailures s1 `shouldBe` 0
+    it "roundtripFromFile for types which have changed the values of ToJSON or FromJSON keys should fail to match the goldenFiles" $ do
+      (s1,_) <- hspecSilently $ roundtripFromFile (Proxy :: Proxy TBS.Person)
+      summaryFailures s1 `shouldBe` 1
+
+    it "roundtripFromFile for types which have changed the values of ToJSON or FromJSON keys should fail to match the goldenFiles" $ do
+      (s1,_) <- hspecSilently $ roundtripFromFile (Proxy :: Proxy TNS.Person)
+      summaryFailures s1 `shouldBe` 1
+
+    it "roundtripFromFile for types which have altered the name of the selector and using generic implementation of ToJSON and FromJSON should fail to match the goldenFiles" $ do
+      (s1,_) <- hspecSilently $ roundtripFromFile (Proxy :: Proxy TAS.Person)
+      summaryFailures s1 `shouldBe` 1
+
+  describe "roundtripADTFromFile" $ do
+    it "Should pass if serialization is OK" $ do
+      (s1,_) <- hspecSilently $ roundtripADTFromFile (Proxy :: Proxy T.Person)
+      summaryFailures s1 `shouldBe` 0
+    it "roundtripADTFromFile for types which have changed the values of ToJSON or FromJSON keys should fail to match the goldenFiles" $ do
+      (s1,_) <- hspecSilently $ roundtripADTFromFile (Proxy :: Proxy TBS.Person)
+      summaryFailures s1 `shouldBe` 1
+
+    it "roundtripADTFromFile for types which have changed the values of ToJSON or FromJSON keys should fail to match the goldenFiles" $ do
+      (s1,_) <- hspecSilently $ roundtripADTFromFile (Proxy :: Proxy TNS.Person)
+      summaryFailures s1 `shouldBe` 1
+
+    it "roundtripADTFromFile for types which have altered the name of the selector and using generic implementation of ToJSON and FromJSON should fail to match the goldenFiles" $ do
+      (s1,_) <- hspecSilently $ roundtripADTFromFile (Proxy :: Proxy TAS.Person)
+      summaryFailures s1 `shouldBe` 1
+
+
+
 
 
 

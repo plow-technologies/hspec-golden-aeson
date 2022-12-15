@@ -14,6 +14,7 @@ Internal module, use at your own risk.
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE RankNTypes #-}
 module Test.Aeson.Internal.GoldenSpecs where
 
@@ -90,7 +91,7 @@ goldenSpecsWithNotePlain settings@Settings{..} typeNameInfo@(TypeNameInfo{typeNa
           doCreate <- isJust <$> lookupEnv "CREATE_MISSING_GOLDEN"
           if doCreate
             then createGoldenfile settings proxy goldenFile
-            else expectationFailure $ "Missing golden file: " <> goldenFile
+            else expectationFailure $ "Missing golden file: " ++ goldenFile
 
     
 -- | The golden files already exist. Serialize values with the same seed from

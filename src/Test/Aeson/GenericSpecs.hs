@@ -22,6 +22,8 @@ module Test.Aeson.GenericSpecs
     goldenSpecs
   , roundtripSpecs
   , roundtripAndGoldenSpecs
+  , roundtripFromFile
+  , roundtripFromFileWithSettings
 
   -- * ToADTArbitrary testing
   , goldenADTSpecs
@@ -29,6 +31,8 @@ module Test.Aeson.GenericSpecs
   , roundtripAndGoldenSpecsWithSettings
   , roundtripAndGoldenADTSpecs
   , roundtripAndGoldenADTSpecsWithSettings
+  , roundtripADTFromFile
+  , roundtripADTFromFileWithSettings
 
   -- * Make Files
   , mkGoldenFileForType
@@ -51,6 +55,8 @@ import           Test.Aeson.Internal.ADT.GoldenSpecs    (goldenADTSpecs, mkGolde
 import           Test.Aeson.Internal.ADT.RoundtripSpecs (roundtripADTSpecs)
 import           Test.Aeson.Internal.GoldenSpecs        (goldenSpecs)
 import           Test.Aeson.Internal.RoundtripSpecs     (roundtripSpecs)
+import qualified Test.Aeson.Internal.RoundtripFromFile
+import qualified Test.Aeson.Internal.ADT.RoundtripFromFile
 import           Test.Aeson.Internal.Utils
 import           Test.Hspec
 import           Test.QuickCheck
@@ -89,3 +95,23 @@ roundtripAndGoldenADTSpecsWithSettings :: forall a.
 roundtripAndGoldenADTSpecsWithSettings settings proxy = do
   roundtripADTSpecs proxy
   goldenADTSpecs settings proxy
+
+roundtripFromFile :: forall a. 
+  (Arbitrary a, Typeable a, Eq a, Show a, ToJSON a, FromJSON a)
+  => Proxy a -> Spec
+roundtripFromFile = roundtripFromFileWithSettings defaultSettings
+
+roundtripFromFileWithSettings :: forall a. 
+  (Arbitrary a, Typeable a, Eq a, Show a, ToJSON a, FromJSON a)
+  => Settings -> Proxy a -> Spec
+roundtripFromFileWithSettings = Test.Aeson.Internal.RoundtripFromFile.roundtripFromFile
+
+roundtripADTFromFile :: forall a. 
+  (ToADTArbitrary a, Typeable a, Eq a, Show a, ToJSON a, FromJSON a)
+  => Proxy a -> Spec
+roundtripADTFromFile = roundtripADTFromFileWithSettings defaultSettings
+
+roundtripADTFromFileWithSettings :: forall a. 
+  (ToADTArbitrary a, Typeable a, Eq a, Show a, ToJSON a, FromJSON a)
+  => Settings -> Proxy a -> Spec
+roundtripADTFromFileWithSettings = Test.Aeson.Internal.ADT.RoundtripFromFile.roundtripADTFromFile
