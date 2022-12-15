@@ -87,6 +87,10 @@ main = do
   goldenSpecs (Proxy :: Proxy Person)
   goldenSpecs (Proxy :: Proxy OnOrOff)
   
+  -- Like goldenSpecs but will not use the Arbritrary instance when running the test
+  roundtripFromFile (Proxy :: Proxy Person)
+  roundtripFromFile (Proxy :: Proxy OnOrOff)
+  
   -- use the module name as a dir when saving and opening files
   goldenSpecs (defaultSettings { useModuleNameAsSubDirectory = True }) (Proxy :: Proxy Person)
   goldenSpecs (defaultSettings { useModuleNameAsSubDirectory = True }) (Proxy :: Proxy OnOrOff)
