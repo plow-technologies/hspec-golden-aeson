@@ -12,7 +12,7 @@
   don't exist, to create them, set the `CREATE_MISSING_GOLDEN` environment variable.
   This is to prevent missing golden files from silently making golden tests
   degrade to round-trip tests
-* Add a `RECREATE_BROKEN_GOLDEN` environemnt variable. When present it will
+* Add a `RECREATE_BROKEN_GOLDEN` environment variable. When present it will
   cause golden files to be re-created if they cause the test to fail. This is
   useful for updating golden files when serialization has been purposedly
   modified and to update the seed if it breaks due to overflow now that it is
