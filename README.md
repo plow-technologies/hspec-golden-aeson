@@ -2,11 +2,17 @@
 
 ## Arbitrary
 
-GoldenSpecs functions write golden files if they do not exist. When they do
-exist they use a seed from the golden file to create an arbitrary value of a
+GoldenSpecs functions write golden files if they do not exist and the
+CREATE_MISSING_GOLDEN environment is set, otherwise the test will fail to ensure
+that there is really a golden file commited int the repository and the file is not
+created on every run.
+When they do exist they use a seed from the golden file to create an arbitrary value of a
 type and check if the serialization matches the file. If it fails it means
 that there has been a change in the Aeson serialization or a change in the
-data type.
+data type. When a breaking change in serialization is made, one can set the
+RECREATE_BROKEN_GOLDEN environment variable when running the tests while developing
+(ie: do no set this env var unconditionally on CI) to recreate the golden files that have
+been affected. 
 
 RoundtripSpecs make sure that a type is able to be encoded to JSON, decoded
 from JSON back to the original type, and equal the same value. If it fails
